@@ -1,0 +1,31 @@
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn--play {
+  width: 44px;
+  background: var(--accent-dim);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.btn--play:hover:not(:disabled) {
+  background: var(--accent-dim-hover);
+}
+.transport__time {
+  margin-left: 12px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.transport__sep,
+.transport__duration {
+  color: var(--text-muted);
+}
+.transport__duration {
+  font-size: 15px;
+}

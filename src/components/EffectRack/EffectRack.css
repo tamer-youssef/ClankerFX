@@ -1,0 +1,26 @@
+.rack {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px 18px;
+}
+.rack__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.rack__empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.rack__empty p {
+  margin: 0;
+}
+.rack__hint {
+  margin-top: 6px !important;
+  font-size: 12px;
+}

@@ -1,0 +1,33 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 20px;
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header__name {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.header__divider {
+  width: 1px;
+  height: 22px;
+  background: var(--line);
+  margin: 0 4px;
+}
