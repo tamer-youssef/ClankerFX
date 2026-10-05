@@ -134,7 +134,7 @@ export const EffectCard = memo(function EffectCard({
           size="large"
           position={effect.amount}
           valueText={`${Math.round(effect.amount * 100)}%`}
-          onPositionChange={(amount) => dispatch({ type: 'chain/setAmount', id: effect.id, amount })}
+          onPositionChange={(amount) => dispatch({ type: 'chain/setAmount', id: effect.id, amount, at: performance.now() })}
         />
       </div>
 
@@ -156,7 +156,7 @@ export const EffectCard = memo(function EffectCard({
               key={key}
               spec={spec}
               value={effect.params[key] ?? spec.default}
-              onChange={(value) => dispatch({ type: 'chain/setParam', id: effect.id, key, value })}
+              onChange={(value) => dispatch({ type: 'chain/setParam', id: effect.id, key, value, at: performance.now() })}
             />
           ))}
         </div>

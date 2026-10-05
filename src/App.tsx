@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { isWebAudioSupported } from './audio/AudioEngine';
 import { DropOverlay, EmptyState } from './components/DropZone/DropZone';
 import { EffectRack } from './components/EffectRack/EffectRack';
@@ -11,10 +11,18 @@ import { UnsupportedBrowser } from './components/UnsupportedBrowser/UnsupportedB
 import { Waveform } from './components/Waveform/Waveform';
 import { useAudioImport } from './hooks/useAudioImport';
 import { useFileDrop } from './hooks/useFileDrop';
+import { saveUserPresets } from './presets/presetStorage';
 import { AppProvider, useApp } from './state/AppContext';
 import { getActiveFile } from './state/appState';
 import { formatBytes } from './utils/format';
 import { createId } from './utils/id';
+
+/** Fields where Ctrl+Z means "undo my typing", not "undo the last chain edit". */
+function isTextField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable || target.tagName === 'TEXTAREA') return true;
+  return target instanceof HTMLInputElement && ['text', 'number', 'search', 'email', 'url', 'password'].includes(target.type);
+}
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -53,6 +61,41 @@ function Workspace() {
       ),
     [engine, dispatch],
   );
+
+  // Persist user presets whenever they change (not on first render, which would rewrite what we just loaded).
+  const presetsLoaded = useRef(false);
+  useEffect(() => {
+    if (!presetsLoaded.current) {
+      presetsLoaded.current = true;
+      return;
+    }
+    let saved = false;
+    try {
+      saved = saveUserPresets(window.localStorage, state.userPresets);
+    } catch {
+      saved = false;
+    }
+    if (!saved) {
+      dispatch({
+        type: 'notice/pushed',
+        notice: { id: createId('notice'), kind: 'warning', message: 'Your presets could not be saved in this browser (storage is full or blocked).' },
+      });
+    }
+  }, [state.userPresets, dispatch]);
+
+  // Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z or Ctrl+Y redoes.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || isTextField(event.target)) return;
+      const key = event.key.toLowerCase();
+      if (key === 'z') dispatch({ type: event.shiftKey ? 'history/redo' : 'history/undo' });
+      else if (key === 'y') dispatch({ type: 'history/redo' });
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [dispatch]);
 
   // Space toggles playback anywhere except while a control that uses Space has focus.
   useEffect(() => {
