@@ -1,14 +1,25 @@
 import type { LoadedFile, Notice } from '../types/audio';
+import type { EffectState } from '../types/effects';
+import { chainReducer, type ChainAction } from './chainState';
 
 export interface AppState {
   files: LoadedFile[];
   activeFileId: string | null;
   notices: Notice[];
+  /** The effect chain applied to every file. */
+  chain: EffectState[];
+  /** Hear the unprocessed signal (before/after). Not saved in presets. */
+  bypassAll: boolean;
+  /** Effects currently auditioned as bypassed (per-effect A/B). Not saved in presets. */
+  bypassedIds: string[];
   /** Number of files currently being read/decoded. */
   pendingLoads: number;
 }
 
 export type AppAction =
+  | ChainAction
+  | { type: 'bypass/toggleEffect'; id: string }
+  | { type: 'bypass/setAll'; value: boolean }
   | { type: 'files/added'; files: LoadedFile[] }
   | { type: 'files/activated'; id: string }
   | { type: 'files/removed'; id: string }
@@ -22,6 +33,9 @@ export const initialAppState: AppState = {
   files: [],
   activeFileId: null,
   notices: [],
+  chain: [],
+  bypassAll: false,
+  bypassedIds: [],
   pendingLoads: 0,
 };
 
@@ -29,6 +43,28 @@ const MAX_NOTICES = 4;
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'chain/add':
+    case 'chain/remove':
+    case 'chain/move':
+    case 'chain/setAmount':
+    case 'chain/setEnabled':
+    case 'chain/setParam':
+    case 'chain/replace': {
+      const chain = chainReducer(state.chain, action);
+      if (chain === state.chain) return state;
+      // Forget A/B state for effects that no longer exist.
+      const bypassedIds = state.bypassedIds.filter((id) => chain.some((effect) => effect.id === id));
+      return { ...state, chain, bypassedIds };
+    }
+    case 'bypass/toggleEffect':
+      return {
+        ...state,
+        bypassedIds: state.bypassedIds.includes(action.id)
+          ? state.bypassedIds.filter((id) => id !== action.id)
+          : [...state.bypassedIds, action.id],
+      };
+    case 'bypass/setAll':
+      return { ...state, bypassAll: action.value };
     case 'files/added': {
       if (action.files.length === 0) return state;
       const [first] = action.files;

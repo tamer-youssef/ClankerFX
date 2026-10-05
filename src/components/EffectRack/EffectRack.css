@@ -10,6 +10,14 @@
   justify-content: space-between;
   margin-bottom: 12px;
 }
+.rack__count {
+  font-family: var(--font-mono);
+}
+.rack__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .rack__empty {
   border: 1px dashed var(--line-strong);
   border-radius: 6px;

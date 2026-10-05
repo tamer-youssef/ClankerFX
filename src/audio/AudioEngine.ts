@@ -1,5 +1,8 @@
 import type { PlaybackState } from '../types/audio';
+import type { ChainOptions, EffectState } from '../types/effects';
 import { Emitter } from '../utils/emitter';
+import { EffectChain } from './EffectChain';
+import { createSafetyLimiter } from './OutputStage';
 import { clampSeek, positionAt, type ClockAnchor } from './playbackClock';
 
 interface EngineEvents {
@@ -10,6 +13,8 @@ interface EngineEvents {
   /** Fired when a buffer is loaded or cleared. */
   buffer: AudioBuffer | null;
   loop: boolean;
+  /** An effect failed to initialise and is being skipped. */
+  effectError: { id: string; message: string };
 }
 
 type AudioContextConstructor = typeof AudioContext;
@@ -27,12 +32,17 @@ export function isWebAudioSupported(): boolean {
 /**
  * Real-time playback engine. Owns the AudioContext and transport; knows nothing about React.
  *
- * Signal path: AudioBufferSourceNode → output (GainNode) → destination.
- * `output` is the seam where the effect chain and final limiter will be inserted in later phases.
+ * Signal path: AudioBufferSourceNode → EffectChain → safety limiter → output (GainNode) → destination.
+ * Loudness normalisation (Phase 5) will slot in between the chain and the limiter.
  */
 export class AudioEngine extends Emitter<EngineEvents> {
   private context: AudioContext | null = null;
   private output: GainNode | null = null;
+  private chain: EffectChain | null = null;
+  private chainConfig: { effects: readonly EffectState[]; options: ChainOptions } = {
+    effects: [],
+    options: { bypassAll: false, bypassedIds: new Set() },
+  };
   private source: AudioBufferSourceNode | null = null;
   private buffer: AudioBuffer | null = null;
 
@@ -50,8 +60,22 @@ export class AudioEngine extends Emitter<EngineEvents> {
       this.context = new Constructor({ latencyHint: 'interactive' });
       this.output = this.context.createGain();
       this.output.connect(this.context.destination);
+
+      this.chain = new EffectChain(this.context, {
+        onEffectError: (id, message) => this.emit('effectError', { id, message }),
+      });
+      const limiter = createSafetyLimiter(this.context);
+      this.chain.output.connect(limiter).connect(this.output);
+      // First sync is immediate: there is nothing to smooth from yet.
+      this.chain.sync(this.chainConfig.effects, this.chainConfig.options, true);
     }
     return this.context;
+  }
+
+  /** Declares the desired effect chain. Safe to call before audio has ever played; applied once the context exists. */
+  setChain(effects: readonly EffectState[], options: ChainOptions): void {
+    this.chainConfig = { effects, options };
+    this.chain?.sync(effects, options, false);
   }
 
   getBuffer(): AudioBuffer | null {
@@ -148,22 +172,24 @@ export class AudioEngine extends Emitter<EngineEvents> {
 
   async dispose(): Promise<void> {
     this.teardownSource();
+    this.chain?.dispose();
     await this.context?.close();
     this.context = null;
     this.output = null;
+    this.chain = null;
   }
 
   private startSourceAt(offset: number): void {
     const context = this.getContext();
     const buffer = this.buffer;
-    const output = this.output;
-    if (!buffer || !output) return;
+    const chain = this.chain;
+    if (!buffer || !chain) return;
 
     this.teardownSource();
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.loop = this.loopEnabled;
-    source.connect(output);
+    source.connect(chain.input);
     source.onended = () => {
       // Only a natural end gets here: teardownSource() clears this handler before manual stops.
       if (this.source !== source) return;

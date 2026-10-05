@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { computePeaksAsync, resamplePeaks, type PeakData } from '../../analysis/waveformPeaks';
 import { usePlayhead } from '../../hooks/useEngine';
 import { useApp } from '../../state/AppContext';
-import { clamp } from '../../utils/format';
+import { clamp } from '../../utils/math';
 import './Waveform.css';
 
 /** Resolution of the cached envelope; wide enough to stay crisp on large 2× displays. */

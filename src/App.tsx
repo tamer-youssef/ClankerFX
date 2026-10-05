@@ -14,6 +14,7 @@ import { useFileDrop } from './hooks/useFileDrop';
 import { AppProvider, useApp } from './state/AppContext';
 import { getActiveFile } from './state/appState';
 import { formatBytes } from './utils/format';
+import { createId } from './utils/id';
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -31,6 +32,19 @@ function Workspace() {
   useEffect(() => {
     engine.loadBuffer(activeBuffer);
   }, [engine, activeBuffer]);
+
+  // Mirror the chain into the engine. Audio never waits on React: this only updates node parameters.
+  useEffect(() => {
+    engine.setChain(state.chain, { bypassAll: state.bypassAll, bypassedIds: new Set(state.bypassedIds) });
+  }, [engine, state.chain, state.bypassAll, state.bypassedIds]);
+
+  useEffect(
+    () =>
+      engine.on('effectError', ({ message }) =>
+        dispatch({ type: 'notice/pushed', notice: { id: createId('notice'), kind: 'error', message } }),
+      ),
+    [engine, dispatch],
+  );
 
   // Space toggles playback anywhere except while a control that uses Space has focus.
   useEffect(() => {
@@ -69,6 +83,16 @@ function Workspace() {
           )}
           <div className="stage__controls">
             <Transport />
+            <button
+              type="button"
+              className="btn"
+              aria-pressed={state.bypassAll}
+              disabled={state.chain.length === 0}
+              onClick={() => dispatch({ type: 'bypass/setAll', value: !state.bypassAll })}
+              title="Hear the original, unprocessed voice (before/after)"
+            >
+              {state.bypassAll ? 'Original' : 'Bypass all'}
+            </button>
           </div>
         </section>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clamp, formatBytes, formatTime } from './format';
+import { formatBytes, formatTime } from './format';
 
 describe('formatTime', () => {
   it('formats minutes, seconds and hundredths', () => {
@@ -22,10 +22,3 @@ describe('formatBytes', () => {
   });
 });
 
-describe('clamp', () => {
-  it('limits to range', () => {
-    expect(clamp(5, 0, 1)).toBe(1);
-    expect(clamp(-5, 0, 1)).toBe(0);
-    expect(clamp(0.4, 0, 1)).toBe(0.4);
-  });
-});
