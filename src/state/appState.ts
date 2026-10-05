@@ -1,6 +1,11 @@
 import type { LoadedFile, Notice } from '../types/audio';
 import type { EffectState } from '../types/effects';
+import type { Preset } from '../types/presets';
 import { chainReducer, type ChainAction } from './chainState';
+import { initialHistory, pushHistory, shouldCoalesce, type HistoryState, type Snapshot } from './history';
+
+export type { Snapshot } from './history';
+export { MAX_HISTORY } from './history';
 
 export interface AppState {
   files: LoadedFile[];
@@ -14,10 +19,23 @@ export interface AppState {
   bypassedIds: string[];
   /** Number of files currently being read/decoded. */
   pendingLoads: number;
+  /** Id of the preset last applied or saved; null when the chain is not tied to a preset. */
+  selectedPresetId: string | null;
+  /** The user's saved presets (built-ins live outside the reducer). */
+  userPresets: Preset[];
+  /** Undo/redo of chain edits (and the preset selection that went with them). */
+  history: HistoryState;
 }
 
 export type AppAction =
   | ChainAction
+  | { type: 'history/undo' }
+  | { type: 'history/redo' }
+  | { type: 'presets/added'; presets: Preset[]; select?: string | null }
+  | { type: 'presets/renamed'; id: string; name: string }
+  | { type: 'presets/deleted'; id: string }
+  | { type: 'presets/loaded'; presets: Preset[] }
+  | { type: 'presets/selected'; id: string | null }
   | { type: 'bypass/toggleEffect'; id: string }
   | { type: 'bypass/setAll'; value: boolean }
   | { type: 'files/added'; files: LoadedFile[] }
@@ -37,9 +55,43 @@ export const initialAppState: AppState = {
   bypassAll: false,
   bypassedIds: [],
   pendingLoads: 0,
+  selectedPresetId: null,
+  userPresets: [],
+  history: initialHistory,
 };
 
 const MAX_NOTICES = 4;
+
+/** Forget A/B state for effects that no longer exist. Keeps the reference when nothing changed. */
+function pruneBypassed(bypassedIds: string[], chain: EffectState[]): string[] {
+  const kept = bypassedIds.filter((id) => chain.some((effect) => effect.id === id));
+  return kept.length === bypassedIds.length ? bypassedIds : kept;
+}
+
+/** Slider-style edits are keyed per control so only consecutive edits of the same control merge. */
+function coalesceKey(action: ChainAction): string | null {
+  if (action.type === 'chain/setAmount') return `setAmount:${action.id}`;
+  if (action.type === 'chain/setParam') return `setParam:${action.id}:${action.key}`;
+  return null;
+}
+
+function restore(state: AppState, target: Snapshot, history: HistoryState): AppState {
+  return {
+    ...state,
+    chain: target.chain,
+    selectedPresetId: target.presetId,
+    bypassedIds: pruneBypassed(state.bypassedIds, target.chain),
+    history,
+  };
+}
+
+export function canUndo(state: AppState): boolean {
+  return state.history.past.length > 0;
+}
+
+export function canRedo(state: AppState): boolean {
+  return state.history.future.length > 0;
+}
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -51,11 +103,63 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'chain/setParam':
     case 'chain/replace': {
       const chain = chainReducer(state.chain, action);
-      if (chain === state.chain) return state;
-      // Forget A/B state for effects that no longer exist.
-      const bypassedIds = state.bypassedIds.filter((id) => chain.some((effect) => effect.id === id));
-      return { ...state, chain, bypassedIds };
+      const selectedPresetId =
+        action.type === 'chain/replace' && action.presetId !== undefined ? action.presetId : state.selectedPresetId;
+      if (chain === state.chain) {
+        // No chain change means no undo step; a replace may still re-tag the selected preset.
+        return selectedPresetId === state.selectedPresetId ? state : { ...state, selectedPresetId };
+      }
+      const key = coalesceKey(action);
+      const at = action.type === 'chain/setAmount' || action.type === 'chain/setParam' ? action.at : undefined;
+      let history: HistoryState;
+      if (key !== null && at !== undefined && shouldCoalesce(state.history, key, at)) {
+        history = { ...state.history, lastEdit: { key, at } };
+      } else {
+        const before: Snapshot = { chain: state.chain, presetId: state.selectedPresetId };
+        history = pushHistory(state.history, before, key !== null && at !== undefined ? { key, at } : null);
+      }
+      return { ...state, chain, selectedPresetId, history, bypassedIds: pruneBypassed(state.bypassedIds, chain) };
     }
+    case 'history/undo': {
+      const { past, future } = state.history;
+      const target = past.at(-1);
+      if (!target) return state;
+      const current: Snapshot = { chain: state.chain, presetId: state.selectedPresetId };
+      return restore(state, target, { past: past.slice(0, -1), future: [...future, current], lastEdit: null });
+    }
+    case 'history/redo': {
+      const { past, future } = state.history;
+      const target = future.at(-1);
+      if (!target) return state;
+      const current: Snapshot = { chain: state.chain, presetId: state.selectedPresetId };
+      return restore(state, target, { past: [...past, current], future: future.slice(0, -1), lastEdit: null });
+    }
+    case 'presets/added': {
+      const selectedPresetId = action.select === undefined ? state.selectedPresetId : action.select;
+      if (action.presets.length === 0 && selectedPresetId === state.selectedPresetId) return state;
+      return { ...state, userPresets: [...state.userPresets, ...action.presets], selectedPresetId };
+    }
+    case 'presets/renamed': {
+      const name = action.name.trim();
+      if (name === '') return state;
+      const index = state.userPresets.findIndex((preset) => preset.id === action.id && !preset.builtIn);
+      if (index < 0 || state.userPresets[index]!.name === name) return state;
+      const userPresets = state.userPresets.slice();
+      userPresets[index] = { ...userPresets[index]!, name };
+      return { ...state, userPresets };
+    }
+    case 'presets/deleted': {
+      if (!state.userPresets.some((preset) => preset.id === action.id && !preset.builtIn)) return state;
+      return {
+        ...state,
+        userPresets: state.userPresets.filter((preset) => preset.id !== action.id),
+        selectedPresetId: state.selectedPresetId === action.id ? null : state.selectedPresetId,
+      };
+    }
+    case 'presets/loaded':
+      return { ...state, userPresets: action.presets };
+    case 'presets/selected':
+      return action.id === state.selectedPresetId ? state : { ...state, selectedPresetId: action.id };
     case 'bypass/toggleEffect':
       return {
         ...state,

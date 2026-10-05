@@ -69,3 +69,13 @@ describe('app state bypass handling', () => {
     expect(appReducer(initialAppState, { type: 'bypass/setAll', value: true }).bypassAll).toBe(true);
   });
 });
+
+describe('chain actions keep the optional history fields', () => {
+  it('ignores at and presetId in the chain-only reducer', () => {
+    const delay = make('delay');
+    const chain = chainReducer([delay], { type: 'chain/setAmount', id: delay.id, amount: 0.5, at: 123 });
+    expect(chain[0]!.amount).toBe(0.5);
+    const effects = [make('gain')];
+    expect(chainReducer(chain, { type: 'chain/replace', effects, presetId: 'p' })).toBe(effects);
+  });
+});

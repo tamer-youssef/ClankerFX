@@ -7,10 +7,12 @@ export type ChainAction =
   | { type: 'chain/add'; effect: EffectState }
   | { type: 'chain/remove'; id: string }
   | { type: 'chain/move'; fromIndex: number; toIndex: number }
-  | { type: 'chain/setAmount'; id: string; amount: number }
+  /** `at` (ms timestamp) lets rapid edits of the same control share one undo step. */
+  | { type: 'chain/setAmount'; id: string; amount: number; at?: number }
   | { type: 'chain/setEnabled'; id: string; enabled: boolean }
-  | { type: 'chain/setParam'; id: string; key: string; value: number }
-  | { type: 'chain/replace'; effects: EffectState[] };
+  | { type: 'chain/setParam'; id: string; key: string; value: number; at?: number }
+  /** `presetId`: undefined keeps the selected preset, otherwise sets it (null clears). */
+  | { type: 'chain/replace'; effects: EffectState[]; presetId?: string | null };
 
 function updateEffect(chain: EffectState[], id: string, update: (effect: EffectState) => EffectState): EffectState[] {
   const index = chain.findIndex((effect) => effect.id === id);
@@ -40,15 +42,21 @@ export function chainReducer(chain: EffectState[], action: ChainAction): EffectS
       return next;
     }
     case 'chain/setAmount':
-      return updateEffect(chain, action.id, (effect) => ({ ...effect, amount: clamp01(action.amount) }));
+      return updateEffect(chain, action.id, (effect) => {
+        const amount = clamp01(action.amount);
+        return amount === effect.amount ? effect : { ...effect, amount };
+      });
     case 'chain/setEnabled':
-      return updateEffect(chain, action.id, (effect) => ({ ...effect, enabled: action.enabled }));
+      return updateEffect(chain, action.id, (effect) =>
+        action.enabled === effect.enabled ? effect : { ...effect, enabled: action.enabled },
+      );
     case 'chain/setParam':
       return updateEffect(chain, action.id, (effect) => {
         const definition = getEffectDefinition(effect.type);
         if (!definition || !(action.key in definition.params)) return effect;
         // Re-clamp the whole set so a bad value can never reach the DSP.
-        return { ...effect, params: clampParams(definition.params, { ...effect.params, [action.key]: action.value }) };
+        const params = clampParams(definition.params, { ...effect.params, [action.key]: action.value });
+        return params[action.key] === effect.params[action.key] ? effect : { ...effect, params };
       });
     case 'chain/replace':
       return action.effects;
