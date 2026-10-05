@@ -1,0 +1,58 @@
+.file-tray {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.file-chip {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  max-width: 260px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.file-chip--active {
+  border-color: var(--accent-line);
+  background: var(--accent-dim);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.file-chip__select {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 4px 6px 10px;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.file-chip__name {
+  /* Wrap rather than truncate: the file name is the identity of the chip. */
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.file-chip__meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.file-chip__remove {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.file-chip__remove:hover {
+  color: var(--text);
+}

@@ -1,0 +1,58 @@
+import { useId } from 'react';
+import './Slider.css';
+
+interface SliderProps {
+  label: string;
+  /** Spoken name when the visible label is too terse out of context (e.g. "Amount" repeated on every card). */
+  accessibleName?: string;
+  /** Normalised 0–1 position; mapping to real values (linear/log/step) is the caller's job. */
+  position: number;
+  valueText: string;
+  onPositionChange: (position: number) => void;
+  /**
+   * Keyboard stepping in the caller's own units. The track only has 1000 positions, so native arrow-key steps are
+   * too fine to register for coarse parameters; supplying this makes every key press a real, visible step.
+   */
+  onStep?: (direction: 1 | -1, large: boolean) => void;
+  size?: 'large' | 'small';
+  disabled?: boolean;
+}
+
+const RESOLUTION = 1000;
+
+export function Slider({ label, accessibleName, position, valueText, onPositionChange, onStep, size = 'small', disabled }: SliderProps) {
+  const id = useId();
+  const percent = Math.round(position * 100);
+  return (
+    <div className={`slider slider--${size}`}>
+      <label htmlFor={id} className="slider__label">
+        {label}
+      </label>
+      <input
+        id={id}
+        className="slider__input"
+        type="range"
+        min={0}
+        max={RESOLUTION}
+        step={1}
+        value={Math.round(position * RESOLUTION)}
+        disabled={disabled}
+        aria-label={accessibleName}
+        aria-valuetext={valueText}
+        style={{ '--fill': `${percent}%` } as React.CSSProperties}
+        onChange={(event) => onPositionChange(Number(event.target.value) / RESOLUTION)}
+        onKeyDown={(event) => {
+          if (!onStep) return;
+          const direction = event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'PageUp' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'PageDown' ? -1 : 0;
+          if (direction === 0) return;
+          event.preventDefault();
+          onStep(direction, event.key === 'PageUp' || event.key === 'PageDown' || event.shiftKey);
+        }}
+      />
+      {/* Plain text, not <output> (an implicit live region that would announce every drag step); the slider's aria-valuetext carries the value. */}
+      <span className="slider__value" aria-hidden="true">
+        {valueText}
+      </span>
+    </div>
+  );
+}

@@ -1,0 +1,46 @@
+.empty-state {
+  height: clamp(180px, 34vh, 320px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  background: #0a0d10;
+  text-align: center;
+  padding: 16px;
+}
+.empty-state__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.empty-state__sub {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 10, 13, 0.82);
+  backdrop-filter: blur(2px);
+}
+.drop-overlay__box {
+  padding: 40px 72px;
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+@media (min-width: 1024px) {
+  .empty-state {
+    height: clamp(150px, 25vh, 240px);
+  }
+}

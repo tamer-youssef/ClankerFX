@@ -1,0 +1,32 @@
+{
+  "name": "mechvox",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MechVox \u2014 a local, DSP-only effects rack for robot, radio and game voices.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check:browser": "node scripts/check-in-browser.mjs",
+    "check:a11y": "node scripts/check-a11y.mjs",
+    "check:privacy": "node scripts/check-privacy.mjs",
+    "deploy:pages": "bash scripts/deploy-pages.sh"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}

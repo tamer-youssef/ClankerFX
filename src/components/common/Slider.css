@@ -1,0 +1,86 @@
+.slider {
+  display: grid;
+  grid-template-columns: minmax(70px, 130px) 1fr minmax(60px, auto);
+  align-items: center;
+  gap: 12px;
+}
+.slider__label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.slider__value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.slider--large {
+  grid-template-columns: 64px 1fr 56px;
+}
+.slider--large .slider__label {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.slider--large .slider__value {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.slider__input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  --track-height: 4px;
+  --thumb-size: 14px;
+  height: 24px;
+}
+.slider--large .slider__input {
+  --track-height: 8px;
+  --thumb-size: 22px;
+  height: 32px;
+}
+.slider__input::-webkit-slider-runnable-track {
+  height: var(--track-height);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent) var(--fill), var(--control) var(--fill));
+}
+.slider__input::-moz-range-track {
+  height: var(--track-height);
+  border-radius: 999px;
+  background: var(--control);
+}
+.slider__input::-moz-range-progress {
+  height: var(--track-height);
+  border-radius: 999px;
+  background: var(--accent);
+}
+.slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  margin-top: calc((var(--track-height) - var(--thumb-size)) / 2);
+  border-radius: 50%;
+  background: #e8edf3;
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.slider__input::-moz-range-thumb {
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  border-radius: 50%;
+  background: #e8edf3;
+  border: 2px solid var(--bg);
+}
+.slider__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.slider__input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

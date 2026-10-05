@@ -1,0 +1,205 @@
+import { memo, useEffect, useRef, useState, type DragEvent } from 'react';
+import { getEffectDefinition } from '../../effects/registry';
+import { useApp } from '../../state/AppContext';
+import type { EffectState } from '../../types/effects';
+import { CloseIcon } from '../common/icons';
+import { Slider } from '../common/Slider';
+import { ParamControl } from './ParamControl';
+import './EffectCard.css';
+
+export type DropIndicator = 'before' | 'after' | null;
+
+interface EffectCardProps {
+  effect: EffectState;
+  index: number;
+  count: number;
+  bypassed: boolean;
+  dragging: boolean;
+  dropIndicator: DropIndicator;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (event: DragEvent<HTMLElement>, index: number) => void;
+  onDrop: (event: DragEvent<HTMLElement>) => void;
+}
+
+export const EffectCard = memo(function EffectCard({
+  effect,
+  index,
+  count,
+  bypassed,
+  dragging,
+  dropIndicator,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+}: EffectCardProps) {
+  const { dispatch } = useApp();
+  const [expanded, setExpanded] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
+  const upRef = useRef<HTMLButtonElement>(null);
+  const downRef = useRef<HTMLButtonElement>(null);
+  /** Which move button was used, so keyboard focus can follow the card to its new position. */
+  const movedRef = useRef<'up' | 'down' | null>(null);
+
+  // Reordering moves the card in the DOM (and may disable the button that was just pressed); keep focus on a move button.
+  useEffect(() => {
+    const moved = movedRef.current;
+    if (moved === null) return;
+    movedRef.current = null;
+    const preferred = moved === 'up' ? upRef.current : downRef.current;
+    const other = moved === 'up' ? downRef.current : upRef.current;
+    (preferred && !preferred.disabled ? preferred : other)?.focus();
+  }, [index]);
+  const definition = getEffectDefinition(effect.type);
+  if (!definition) return null;
+
+  const advancedId = `advanced-${effect.id}`;
+  const move = (toIndex: number) => {
+    movedRef.current = toIndex < index ? 'up' : 'down';
+    dispatch({ type: 'chain/move', fromIndex: index, toIndex });
+  };
+  const classes = ['effect-card'];
+  if (!effect.enabled) classes.push('effect-card--off');
+  if (bypassed) classes.push('effect-card--bypassed');
+  if (dragging) classes.push('effect-card--dragging');
+  if (dropIndicator) classes.push(`effect-card--drop-${dropIndicator}`);
+
+  return (
+    <article
+      ref={cardRef}
+      className={classes.join(' ')}
+      aria-label={`${definition.label} effect`}
+      onDragOver={(event) => onDragOver(event, index)}
+      onDrop={onDrop}
+    >
+      <header className="effect-card__header">
+        <button
+          type="button"
+          className="effect-card__grip"
+          draggable
+          // Pointer-only handle: the Move up / Move down buttons are the keyboard alternative, so keep this out of the tab order.
+          tabIndex={-1}
+          aria-label={`Drag to reorder ${definition.label}`}
+          title="Drag to reorder"
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/x-mechvox-effect', effect.id);
+            if (cardRef.current) event.dataTransfer.setDragImage(cardRef.current, 16, 16);
+            onDragStart(effect.id);
+          }}
+          onDragEnd={onDragEnd}
+        >
+          <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+            {[3, 8, 13].map((y) => (
+              <g key={y}>
+                <circle cx="2" cy={y} r="1.3" />
+                <circle cx="8" cy={y} r="1.3" />
+              </g>
+            ))}
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={effect.enabled}
+          className="effect-card__power"
+          onClick={() => dispatch({ type: 'chain/setEnabled', id: effect.id, enabled: !effect.enabled })}
+          title={effect.enabled ? 'Turn off' : 'Turn on'}
+        >
+          <span className="effect-card__led" aria-hidden="true" />
+          <span className="effect-card__title">{definition.label}</span>
+          {/* The switch already exposes its state; spoken "Delay ON, on" would be redundant (and its name would flip). */}
+          <span className="effect-card__state" aria-hidden="true">
+            {effect.enabled ? 'ON' : 'OFF'}
+          </span>
+        </button>
+
+        <div className="effect-card__tools">
+          <button
+            type="button"
+            className="btn btn--small"
+            aria-pressed={bypassed}
+            aria-label={`Bypass ${definition.label}`}
+            onClick={() => dispatch({ type: 'bypass/toggleEffect', id: effect.id })}
+            title="A/B: hear the voice without this effect (not saved)"
+          >
+            Bypass
+          </button>
+          <button ref={upRef} type="button" className="icon-btn" aria-label={`Move ${definition.label} up`} disabled={index === 0} onClick={() => move(index - 1)}>
+            ▲
+          </button>
+          <button
+            ref={downRef}
+            type="button"
+            className="icon-btn"
+            aria-label={`Move ${definition.label} down`}
+            disabled={index === count - 1}
+            onClick={() => move(index + 1)}
+          >
+            ▼
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={`Remove ${definition.label}`}
+            title="Remove effect"
+            onClick={() => {
+              // This button is about to unmount: hand focus to the neighbouring card's Remove button, or to Add Effect.
+              const neighbour = cardRef.current?.nextElementSibling ?? cardRef.current?.previousElementSibling ?? null;
+              dispatch({ type: 'chain/remove', id: effect.id });
+              requestAnimationFrame(() => {
+                const target = neighbour?.isConnected
+                  ? neighbour.querySelector<HTMLElement>('.icon-btn[aria-label^="Remove"]')
+                  : document.querySelector<HTMLElement>('.add-effect > button');
+                target?.focus();
+              });
+            }}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+      </header>
+
+      <div className="effect-card__amount">
+        <Slider
+          label="Amount"
+          accessibleName={`${definition.label} amount`}
+          size="large"
+          position={effect.amount}
+          valueText={`${Math.round(effect.amount * 100)}%`}
+          onPositionChange={(amount) => dispatch({ type: 'chain/setAmount', id: effect.id, amount, at: performance.now() })}
+          onStep={(direction, large) =>
+            dispatch({ type: 'chain/setAmount', id: effect.id, amount: Math.round((effect.amount + direction * (large ? 0.1 : 0.01)) * 100) / 100, at: performance.now() })
+          }
+        />
+      </div>
+
+      <button
+        type="button"
+        className="effect-card__advanced-toggle"
+        aria-expanded={expanded}
+        aria-controls={advancedId}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> Advanced
+      </button>
+
+      {expanded && (
+        <div id={advancedId} className="effect-card__advanced" role="group" aria-label={`${definition.label} advanced settings`}>
+          <p className="effect-card__hint">{definition.description} Amount scales these settings: 0% is transparent, 100% is exactly what is set here.</p>
+          {Object.entries(definition.params).map(([key, spec]) => (
+            <ParamControl
+              key={key}
+              spec={spec}
+              value={effect.params[key] ?? spec.default}
+              onChange={(value) => dispatch({ type: 'chain/setParam', id: effect.id, key, value, at: performance.now() })}
+            />
+          ))}
+        </div>
+      )}
+    </article>
+  );
+});
+
