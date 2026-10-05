@@ -1,4 +1,4 @@
-import { createWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
+import { createWorkletNode, disposeWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
 import { clamp01 } from '../utils/math';
 import { defineEffect } from './BaseEffect';
 
@@ -36,7 +36,7 @@ export const pitchEffect = defineEffect<PitchParams>({
       output: node,
       update: (params, immediate) => setWorkletParams(context, node, { semitones: params.semitones, windowMs: params.windowMs }, immediate),
       reset: (at) => resetWorkletAt(context, node, at),
-      dispose: () => node.disconnect(),
+      dispose: () => disposeWorkletNode(node),
     };
   },
 });

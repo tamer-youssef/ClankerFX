@@ -51,3 +51,12 @@ export function setWorkletParams(context: BaseAudioContext, node: AudioWorkletNo
 export function resetWorkletAt(context: BaseAudioContext, node: AudioWorkletNode, at: number): void {
   node.port.postMessage({ type: 'reset', frame: Math.round(at * context.sampleRate) });
 }
+
+/**
+ * Tears down a worklet node. Disconnecting alone is not enough: the processor keeps running (and costing CPU) until
+ * its process() returns false, so it is told to stop first.
+ */
+export function disposeWorkletNode(node: AudioWorkletNode): void {
+  node.port.postMessage({ type: 'dispose' });
+  node.disconnect();
+}

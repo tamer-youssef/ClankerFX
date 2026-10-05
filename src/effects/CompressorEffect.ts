@@ -1,4 +1,4 @@
-import { createWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
+import { createWorkletNode, disposeWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
 import { lerp } from '../utils/math';
 import { defineEffect } from './BaseEffect';
 
@@ -45,7 +45,7 @@ export const compressorEffect = defineEffect<CompressorParams>({
       output: node,
       update: (params, immediate) => setWorkletParams(context, node, params, immediate),
       reset: (at) => resetWorkletAt(context, node, at),
-      dispose: () => node.disconnect(),
+      dispose: () => disposeWorkletNode(node),
     };
   },
 });

@@ -1,4 +1,4 @@
-import { createWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
+import { createWorkletNode, disposeWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
 import { defineEffect } from './BaseEffect';
 
 interface VocoderParams {
@@ -71,7 +71,7 @@ export const vocoderEffect = defineEffect<VocoderParams>({
         setWorkletParams(context, node, dsp, immediate);
       },
       reset: (at) => resetWorkletAt(context, node, at),
-      dispose: () => node.disconnect(),
+      dispose: () => disposeWorkletNode(node),
     };
   },
 });

@@ -1,4 +1,4 @@
-import { createWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
+import { createWorkletNode, disposeWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
 import { defineEffect } from './BaseEffect';
 
 interface FlangerParams {
@@ -29,7 +29,7 @@ export const flangerEffect = defineEffect<FlangerParams>({
       output: node,
       update: (params, immediate) => setWorkletParams(context, node, params, immediate),
       reset: (at) => resetWorkletAt(context, node, at),
-      dispose: () => node.disconnect(),
+      dispose: () => disposeWorkletNode(node),
     };
   },
 });

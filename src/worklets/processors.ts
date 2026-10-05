@@ -35,6 +35,9 @@ interface Resettable {
  */
 abstract class CoreProcessor extends AudioWorkletProcessor {
   private resetAtFrame: number | null = null;
+  /** Set when the owning effect is torn down. Returning false from process() lets the browser stop and collect the processor;
+   * a merely disconnected worklet keeps running (measured: disabled vocoders cost as much as enabled ones). */
+  private disposed = false;
 
   protected abstract readonly core: Resettable;
 
@@ -43,12 +46,14 @@ abstract class CoreProcessor extends AudioWorkletProcessor {
     this.port.onmessage = (event: MessageEvent) => {
       const data = event.data as { type?: string; frame?: number } | null;
       if (data?.type === 'reset' && typeof data.frame === 'number') this.resetAtFrame = data.frame;
+      else if (data?.type === 'dispose') this.disposed = true;
     };
   }
 
   protected abstract run(inputs: Float32Array[], outputs: Float32Array[], frames: number, parameters: Record<string, Float32Array>): void;
 
   override process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean {
+    if (this.disposed) return false;
     const output = outputs[0];
     if (!output || output.length === 0) return true;
     const input = inputs[0] ?? [];
