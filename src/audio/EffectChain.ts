@@ -50,10 +50,23 @@ export class EffectChain {
     this.slots = next;
     if (topologyChanged) this.rewire();
 
-    for (const slot of this.slots) {
+    let failedWhileApplying = false;
+    for (const slot of [...this.slots]) {
       const state = effects.find((effect) => effect.id === slot.id);
-      if (state) slot.apply(state, options.bypassAll || options.bypassedIds.has(slot.id), immediate);
+      if (!state) continue;
+      try {
+        slot.apply(state, options.bypassAll || options.bypassedIds.has(slot.id), immediate);
+      } catch (error) {
+        // Re-enabling an effect rebuilds it; if that fails (e.g. worklet gone) skip the effect instead of breaking audio.
+        this.failed.add(slot.id);
+        slot.dispose();
+        this.slots = this.slots.filter((candidate) => candidate !== slot);
+        failedWhileApplying = true;
+        const reason = error instanceof Error ? error.message : 'unknown error';
+        this.callbacks.onEffectError?.(slot.id, `The "${state.type}" effect could not start (${reason}). It has been skipped.`);
+      }
     }
+    if (failedWhileApplying) this.rewire();
   }
 
   /** Restarts every effect's free-running phases at context time `at`. */
