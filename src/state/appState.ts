@@ -1,5 +1,6 @@
 import type { LoadedFile, Notice } from '../types/audio';
 import type { EffectState } from '../types/effects';
+import { defaultExportSettings, defaultNormalization, type ExportSettings, type Measurements, type NormalizationSettings } from '../types/output';
 import type { Preset } from '../types/presets';
 import { chainReducer, type ChainAction } from './chainState';
 import { initialHistory, pushHistory, shouldCoalesce, type HistoryState, type Snapshot } from './history';
@@ -17,6 +18,11 @@ export interface AppState {
   bypassAll: boolean;
   /** Effects currently auditioned as bypassed (per-effect A/B). Not saved in presets. */
   bypassedIds: string[];
+  normalization: NormalizationSettings;
+  exportSettings: ExportSettings;
+  /** Result of the latest offline analysis of the active file through the chain; null until measured. */
+  measurements: Measurements | null;
+  measuring: boolean;
   /** Number of files currently being read/decoded. */
   pendingLoads: number;
   /** Id of the preset last applied or saved; null when the chain is not tied to a preset. */
@@ -28,6 +34,10 @@ export interface AppState {
 }
 
 export type AppAction =
+  | { type: 'output/setNormalization'; changes: Partial<NormalizationSettings> }
+  | { type: 'output/setExport'; changes: Partial<ExportSettings> }
+  | { type: 'output/measuring' }
+  | { type: 'output/measured'; measurements: Measurements | null }
   | ChainAction
   | { type: 'history/undo' }
   | { type: 'history/redo' }
@@ -54,6 +64,10 @@ export const initialAppState: AppState = {
   chain: [],
   bypassAll: false,
   bypassedIds: [],
+  normalization: defaultNormalization,
+  exportSettings: defaultExportSettings,
+  measurements: null,
+  measuring: false,
   pendingLoads: 0,
   selectedPresetId: null,
   userPresets: [],
@@ -95,6 +109,14 @@ export function canRedo(state: AppState): boolean {
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'output/setNormalization':
+      return { ...state, normalization: { ...state.normalization, ...action.changes } };
+    case 'output/setExport':
+      return { ...state, exportSettings: { ...state.exportSettings, ...action.changes } };
+    case 'output/measuring':
+      return { ...state, measuring: true };
+    case 'output/measured':
+      return { ...state, measuring: false, measurements: action.measurements };
     case 'chain/add':
     case 'chain/remove':
     case 'chain/move':

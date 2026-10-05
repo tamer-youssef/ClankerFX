@@ -372,3 +372,30 @@ describe('preset library state', () => {
     expect(appReducer(loaded, { type: 'presets/selected', id: null })).toBe(loaded);
   });
 });
+
+describe('appReducer output settings', () => {
+  it('defaults to peak normalisation at -1 dBFS with the limiter on', () => {
+    expect(initialAppState.normalization).toMatchObject({ mode: 'peak', peakTargetDb: -1, limiterEnabled: true });
+    expect(initialAppState.exportSettings).toMatchObject({ bitDepth: 16, sampleRate: 'original', filenameSuffix: '_processed' });
+  });
+
+  it('merges partial normalisation and export changes', () => {
+    let state = appReducer(initialAppState, { type: 'output/setNormalization', changes: { mode: 'loudness', loudnessTargetLufs: -18 } });
+    expect(state.normalization).toMatchObject({ mode: 'loudness', loudnessTargetLufs: -18, peakTargetDb: -1 });
+    state = appReducer(state, { type: 'output/setExport', changes: { bitDepth: 24 } });
+    expect(state.exportSettings).toMatchObject({ bitDepth: 24, channels: 'auto' });
+  });
+
+  it('tracks measuring state and results without touching history', () => {
+    let state = appReducer(initialAppState, { type: 'output/measuring' });
+    expect(state.measuring).toBe(true);
+    const measurements = {
+      inputPeakDb: -6, outputPeakDb: -3, loudnessLufs: -20, gainDb: 2, limiterReductionDb: 0,
+      finalPeakDb: -1, finalTruePeakDb: -0.9, clipped: false,
+    };
+    state = appReducer(state, { type: 'output/measured', measurements });
+    expect(state.measuring).toBe(false);
+    expect(state.measurements).toBe(measurements);
+    expect(state.history).toBe(initialAppState.history);
+  });
+});
