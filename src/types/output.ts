@@ -45,8 +45,10 @@ export interface Measurements {
   inputPeakDb: number;
   /** Sample peak after the effect chain, before normalisation. */
   outputPeakDb: number;
-  /** Integrated loudness after the effect chain; null when the signal is too quiet to measure. */
+  /** Integrated loudness after the effect chain but before normalisation; null when too quiet to measure. */
   loudnessLufs: number | null;
+  /** Integrated loudness of the final audio (after gain and limiter): what the exported file will measure. */
+  finalLoudnessLufs: number | null;
   /** Gain applied by normalisation, in dB. */
   gainDb: number;
   /** Largest gain reduction the limiter applied, in dB (0 when it never engaged). */

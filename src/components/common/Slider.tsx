@@ -7,13 +7,18 @@ interface SliderProps {
   position: number;
   valueText: string;
   onPositionChange: (position: number) => void;
+  /**
+   * Keyboard stepping in the caller's own units. The track only has 1000 positions, so native arrow-key steps are
+   * too fine to register for coarse parameters; supplying this makes every key press a real, visible step.
+   */
+  onStep?: (direction: 1 | -1, large: boolean) => void;
   size?: 'large' | 'small';
   disabled?: boolean;
 }
 
 const RESOLUTION = 1000;
 
-export function Slider({ label, position, valueText, onPositionChange, size = 'small', disabled }: SliderProps) {
+export function Slider({ label, position, valueText, onPositionChange, onStep, size = 'small', disabled }: SliderProps) {
   const id = useId();
   const percent = Math.round(position * 100);
   return (
@@ -33,6 +38,13 @@ export function Slider({ label, position, valueText, onPositionChange, size = 's
         aria-valuetext={valueText}
         style={{ '--fill': `${percent}%` } as React.CSSProperties}
         onChange={(event) => onPositionChange(Number(event.target.value) / RESOLUTION)}
+        onKeyDown={(event) => {
+          if (!onStep) return;
+          const direction = event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'PageUp' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'PageDown' ? -1 : 0;
+          if (direction === 0) return;
+          event.preventDefault();
+          onStep(direction, event.key === 'PageUp' || event.key === 'PageDown' || event.shiftKey);
+        }}
       />
       <output htmlFor={id} className="slider__value">
         {valueText}

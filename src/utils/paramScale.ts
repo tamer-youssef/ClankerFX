@@ -33,3 +33,17 @@ export function formatParamValue(spec: ParamSpec, value: number): string {
   const text = value.toFixed(decimals);
   return spec.unit ? `${text} ${spec.unit}` : text;
 }
+
+/**
+ * One keyboard step from `value`. The slider track has 1000 positions, so a native arrow press (1/1000 of the range)
+ * rounds back to the same value for any parameter with fewer than 1000 steps. Stepping in parameter units instead
+ * guarantees every press visibly changes the value. Log-scaled parameters step by about 1 % of their log range.
+ */
+export function stepValue(spec: ParamSpec, value: number, direction: 1 | -1, large = false): number {
+  const factor = large ? 10 : 1;
+  if (spec.scale === 'log' && spec.min > 0) {
+    const target = positionToValue(spec, valueToPosition(spec, value) + direction * 0.01 * factor);
+    if (target !== value) return target;
+  }
+  return clamp(Number((value + direction * spec.step * factor).toFixed(6)), spec.min, spec.max);
+}

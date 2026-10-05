@@ -24,6 +24,13 @@ describe('finalizeOutput', () => {
     expect(measureLoudness(out.channels!, SR).lufs!).toBeCloseTo(-20, 0);
   });
 
+  it('reports the final loudness separately from the loudness before gain', () => {
+    const out = run(stereo(sine(1000, 3, 0.05, SR)), { mode: 'loudness', loudnessTargetLufs: -20, limiterEnabled: true, ceilingDb: -1 });
+    expect(out.measurements.finalLoudnessLufs!).toBeCloseTo(-20, 0);
+    expect(out.measurements.loudnessLufs!).toBeLessThan(-26); // 0.05 amplitude is ≈ −29 LUFS before the gain
+    expect(out.measurements.finalLoudnessLufs! - out.measurements.loudnessLufs!).toBeCloseTo(out.measurements.gainDb, 0);
+  });
+
   it('matches loudness across files of very different levels', () => {
     const quiet = run(stereo(sine(500, 3, 0.02, SR)), { mode: 'loudness', loudnessTargetLufs: -22 });
     const loud = run(stereo(sine(500, 3, 0.4, SR)), { mode: 'loudness', loudnessTargetLufs: -22 });

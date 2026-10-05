@@ -135,6 +135,9 @@ export const EffectCard = memo(function EffectCard({
           position={effect.amount}
           valueText={`${Math.round(effect.amount * 100)}%`}
           onPositionChange={(amount) => dispatch({ type: 'chain/setAmount', id: effect.id, amount, at: performance.now() })}
+          onStep={(direction, large) =>
+            dispatch({ type: 'chain/setAmount', id: effect.id, amount: Math.round((effect.amount + direction * (large ? 0.1 : 0.01)) * 100) / 100, at: performance.now() })
+          }
         />
       </div>
 

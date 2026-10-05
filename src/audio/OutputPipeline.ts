@@ -54,6 +54,7 @@ export function finalizeOutput(input: FinalizeInput, returnAudio: boolean): Fina
     inputPeakDb: linearToDb(input.inputPeak),
     outputPeakDb: linearToDb(outputPeak),
     loudnessLufs: loudnessForDisplay,
+    finalLoudnessLufs: measureLoudness(final, sampleRate).lufs,
     gainDb,
     limiterReductionDb,
     finalPeakDb: linearToDb(finalPeak),

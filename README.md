@@ -5,10 +5,11 @@ Everything is deterministic DSP running locally — no AI, no server, no uploads
 
 > Audio processing happens locally on your device.
 
-**Status:** Phases 1–4 of 8 — load audio, waveform, transport, and a reorderable effect rack with Amount sliders:
+**Status:** Phases 1–6 of 8 — load audio, waveform, transport, and a reorderable effect rack with Amount sliders:
 pitch shift, vocoder, ring modulator, bitcrusher, flanger (AudioWorklets) plus distortion, filter, EQ, chorus, phaser,
 compressor, delay, reverb, tremolo, noise, stereo width and gain. Plus 11 built-in presets, user presets (save/rename/duplicate/delete), deterministic Mutate with saved variations, and undo/redo.
-Normalisation, export, batch processing and recording follow the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Output stage: peak normalisation, LUFS loudness matching, a true-peak brickwall limiter and live level readouts; local WAV export
+(16/24-bit, original/44.1/48/96 kHz, mono/stereo). Batch processing and recording follow the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Develop
 

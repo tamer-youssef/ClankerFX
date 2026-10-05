@@ -390,7 +390,7 @@ describe('appReducer output settings', () => {
     let state = appReducer(initialAppState, { type: 'output/measuring' });
     expect(state.measuring).toBe(true);
     const measurements = {
-      inputPeakDb: -6, outputPeakDb: -3, loudnessLufs: -20, gainDb: 2, limiterReductionDb: 0,
+      inputPeakDb: -6, outputPeakDb: -3, loudnessLufs: -20, finalLoudnessLufs: -18, gainDb: 2, limiterReductionDb: 0,
       finalPeakDb: -1, finalTruePeakDb: -0.9, clipped: false,
     };
     state = appReducer(state, { type: 'output/measured', measurements });

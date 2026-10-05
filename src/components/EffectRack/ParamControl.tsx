@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import type { ParamSpec } from '../../effects/BaseEffect';
-import { formatParamValue, positionToValue, valueToPosition } from '../../utils/paramScale';
+import { formatParamValue, positionToValue, stepValue, valueToPosition } from '../../utils/paramScale';
 import { Slider } from '../common/Slider';
 
 interface ParamControlProps {
@@ -37,6 +37,7 @@ export function ParamControl({ spec, value, onChange }: ParamControlProps) {
       position={valueToPosition(spec, value)}
       valueText={formatParamValue(spec, value)}
       onPositionChange={(position) => onChange(positionToValue(spec, position))}
+      onStep={(direction, large) => onChange(stepValue(spec, value, direction, large))}
     />
   );
 }

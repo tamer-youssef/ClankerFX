@@ -6,6 +6,7 @@ import { FileTray } from './components/FileTray/FileTray';
 import { Header } from './components/Header/Header';
 import { LockIcon } from './components/common/icons';
 import { Notices } from './components/Notices/Notices';
+import { OutputPanel } from './components/OutputPanel/OutputPanel';
 import { Transport } from './components/Transport/Transport';
 import { UnsupportedBrowser } from './components/UnsupportedBrowser/UnsupportedBrowser';
 import { Waveform } from './components/Waveform/Waveform';
@@ -149,6 +150,7 @@ function Workspace() {
           </div>
         </section>
 
+        <OutputPanel />
         <FileTray />
         <EffectRack />
       </main>

@@ -101,9 +101,9 @@ Normalisation is applied *after* effects because they change loudness. For expor
 | 2 | `EffectChain`, effect abstraction, native-node effects, Amount sliders, rack UI | **done** |
 | 3 | AudioWorklet infrastructure: pitch shift, vocoder, flanger, bitcrusher | **done** |
 | 4 | Presets, mutate, undo/redo (drag-reorder shipped in Phase 2) | **done** |
-| 5 | Peak normalise, LUFS matching, brickwall limiter | next |
-| 6 | Offline render, WAV export | |
-| 7 | Batch processing, variations | |
+| 5 | Peak normalise, LUFS matching, brickwall limiter, level readouts | **done** |
+| 6 | Offline render, WAV export (16/24-bit, sample rate, mono/stereo) | **done** |
+| 7 | Batch processing, multi-file loudness matching, variations | next |
 | 8 | Microphone recording, polish, a11y, perf | |
 
 ## Presets, Mutate and undo
@@ -117,6 +117,30 @@ Normalisation is applied *after* effects because they change loudness. For expor
   seeds from a base seed, which the Phase 7 batch "variations" feature will reuse.
 - **Undo/redo** (`state/history.ts`): snapshots of `{chain, selectedPresetId}`, capped at 100. Edits to the same slider within 1 s
   coalesce into one step (the UI passes a timestamp; reducers stay pure). Bypass/audition state and loaded files are not in history.
+
+## Output stage and export (Phases 5–6)
+
+One pipeline, used for the live measurement *and* for export (`audio/OutputPipeline.ts`):
+
+```
+source → effect chain (EffectChain) → [resample] → normalisation gain → brickwall limiter → channel conversion → WAV
+```
+
+- **Why measure offline:** effects change loudness, so normalisation must be computed on the *processed* signal. `useOutputAnalysis`
+  renders the active file through the chain in an `OfflineAudioContext` (debounced, cached per chain), runs the output stage in a
+  Web Worker, and shows input/output peak, loudness before and after, applied gain, limiter reduction, true peak and a clipping flag.
+  The measured gain is also applied to the live engine's makeup-gain node, so the preview is level-matched like the export.
+- **Normalisation:** *Peak* targets the sample peak (default −1 dBFS). *Match loudness* targets integrated loudness (ITU-R BS.1770-4
+  K-weighting, 400 ms blocks, −70 LUFS absolute / −10 LU relative gates; default −20 LUFS for game dialogue). Gain is clamped to ±24 dB.
+  Mono files are measured as dual-mono because the app always plays them through both speakers.
+- **Limiter** (`dsp/LimiterCore.ts`): look-ahead (5 ms) brickwall with instant attack, 100 ms release and optional 4× true-peak
+  detection. The gain at every sample is provably ≤ the required gain (min over the look-ahead window, then a moving average of the
+  release-smoothed envelope), so the ceiling holds. The same class runs in the realtime AudioWorklet and offline, and block-wise
+  processing is bit-identical to one big buffer. Disabling it raises its ceiling to +60 dB (latency-matched pass-through).
+- **Export:** `audio/exporter.ts`. "Original" sample rate comes from the source header (`audioMetadata.ts`), since
+  `decodeAudioData` resamples to the context rate. Resampling happens *before* the gain/limiter so what is measured is what is
+  written. 16-bit output uses seeded TPDF dither; 24-bit does not. Reverb/delay tails are rendered (`renderTail.ts`) and trailing
+  silence is trimmed. Nothing is uploaded; the file is saved through a temporary object-URL link.
 
 ## Web Audio gotchas found by testing (keep in mind when adding effects)
 
@@ -149,8 +173,9 @@ false "identical" results; the script therefore always starts a fresh one.
 
 ## Known limits / notes
 
-- The output stage currently uses a native `DynamicsCompressorNode` as an interim safety limiter; Phase 5 replaces it
-  with a brickwall limiter.
+- If AudioWorklet is unavailable the live output falls back to a native compressor as a safety limiter (the effects that need worklets are skipped).
+- The frame-exact worklet reset needs its message to arrive before playback starts (25 ms lead). Under heavy CPU load a late reset only shifts modulator phase; it never affects level.
+- Slider tracks have 1000 positions, so keyboard stepping is done in parameter units (`stepValue`), not by the native range input.
 - Realtime and export match when playback starts from the beginning. After a mid-file seek, modulator phases are relative to the seek point, not the file position.
 - The pitch shifter is a time-domain two-tap design: formants move with pitch and a little granular warble remains (see `PitchShiftCore`).
 
