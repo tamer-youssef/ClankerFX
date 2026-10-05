@@ -1,5 +1,6 @@
 /// <reference path="./worklet-globals.d.ts" />
 import { BitcrusherCore } from '../dsp/BitcrusherCore';
+import { CompressorCore } from '../dsp/CompressorCore';
 import { FlangerCore } from '../dsp/FlangerCore';
 import { LimiterCore } from '../dsp/LimiterCore';
 import { PitchShiftCore } from '../dsp/PitchShiftCore';
@@ -169,6 +170,29 @@ class VocoderProcessor extends CoreProcessor {
   }
 }
 
+class CompressorProcessor extends CoreProcessor {
+  protected readonly core = new CompressorCore(sampleRate);
+
+  static get parameterDescriptors() {
+    return [kRate('thresholdDb', -26, -100, 0), kRate('ratio', 6, 1, 100), kRate('attackMs', 8, 0.1, 500), kRate('releaseMs', 160, 1, 5000), kRate('makeupDb', 0, -36, 36)];
+  }
+
+  protected run(inputs: Float32Array[], outputs: Float32Array[], frames: number, parameters: Record<string, Float32Array>): void {
+    this.core.process(
+      inputs,
+      outputs,
+      frames,
+      {
+        thresholdDb: value(parameters, 'thresholdDb'),
+        ratio: value(parameters, 'ratio'),
+        attackMs: value(parameters, 'attackMs'),
+        releaseMs: value(parameters, 'releaseMs'),
+        makeupDb: value(parameters, 'makeupDb'),
+      },
+    );
+  }
+}
+
 /**
  * Output limiter. Unlike the effects it has no free-running phase to reset; instead the limiter core is rebuilt when
  * its (rarely changed) ceiling / mode parameters change.
@@ -202,3 +226,4 @@ registerProcessor('mechvox-flanger', FlangerProcessor);
 registerProcessor('mechvox-pitch', PitchShiftProcessor);
 registerProcessor('mechvox-vocoder', VocoderProcessor);
 registerProcessor('mechvox-limiter', LimiterProcessor);
+registerProcessor('mechvox-compressor', CompressorProcessor);

@@ -1,5 +1,5 @@
-import { setParam } from '../audio/paramUtils';
-import { dbToGain, lerp } from '../utils/math';
+import { createWorkletNode, resetWorkletAt, setWorkletParams } from '../audio/worklets';
+import { lerp } from '../utils/math';
 import { defineEffect } from './BaseEffect';
 
 interface CompressorParams {
@@ -10,10 +10,15 @@ interface CompressorParams {
   makeupDb: number;
 }
 
+/**
+ * Our own feed-forward compressor (dsp/CompressorCore.ts) rather than the browser's DynamicsCompressorNode, which adds a
+ * hidden automatic make-up gain (up to +12 dB, depending on threshold and ratio) that made levels swing unpredictably.
+ * Here a signal below the threshold passes at exactly unity; make-up is only what the Make-up slider says.
+ */
 export const compressorEffect = defineEffect<CompressorParams>({
   type: 'compressor',
   label: 'Compressor',
-  description: 'Evens out dynamics so quiet and loud syllables sit together.',
+  description: 'Evens out dynamics so quiet and loud syllables sit together. No hidden make-up gain.',
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
@@ -34,25 +39,13 @@ export const compressorEffect = defineEffect<CompressorParams>({
     },
   }),
   create(context) {
-    const compressor = context.createDynamicsCompressor();
-    compressor.knee.value = 6;
-    const makeup = context.createGain();
-    compressor.connect(makeup);
-
+    const node = createWorkletNode(context, 'mechvox-compressor');
     return {
-      input: compressor,
-      output: makeup,
-      update(params, immediate) {
-        setParam(context, compressor.threshold, params.thresholdDb, immediate);
-        setParam(context, compressor.ratio, params.ratio, immediate);
-        setParam(context, compressor.attack, params.attackMs / 1000, immediate);
-        setParam(context, compressor.release, params.releaseMs / 1000, immediate);
-        setParam(context, makeup.gain, dbToGain(params.makeupDb), immediate);
-      },
-      dispose: () => {
-        compressor.disconnect();
-        makeup.disconnect();
-      },
+      input: node,
+      output: node,
+      update: (params, immediate) => setWorkletParams(context, node, params, immediate),
+      reset: (at) => resetWorkletAt(context, node, at),
+      dispose: () => node.disconnect(),
     };
   },
 });

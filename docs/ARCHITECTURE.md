@@ -67,7 +67,7 @@ building straight on `BaseAudioContext` is what lets one graph serve both `Audio
 | Effect | Implementation |
 | --- | --- |
 | Gain, Filter (HP/LP), EQ | `GainNode`, `BiquadFilterNode` chains |
-| Compressor | `DynamicsCompressorNode` |
+| **Compressor** | **AudioWorklet** (`CompressorCore`) — the native node adds a hidden auto make-up gain of up to +12 dB |
 | Delay | `DelayNode` + clamped feedback `GainNode` (+ damping filter) |
 | Chorus / Phaser | `DelayNode` / allpass chain with `OscillatorNode` LFOs into `AudioParam`s |
 | Tremolo | `OscillatorNode` → `GainNode.gain` |
@@ -103,8 +103,8 @@ Normalisation is applied *after* effects because they change loudness. For expor
 | 4 | Presets, mutate, undo/redo (drag-reorder shipped in Phase 2) | **done** |
 | 5 | Peak normalise, LUFS matching, brickwall limiter, level readouts | **done** |
 | 6 | Offline render, WAV export (16/24-bit, sample rate, mono/stereo) | **done** |
-| 7 | Batch processing, multi-file loudness matching, variations | next |
-| 8 | Microphone recording, polish, a11y, perf | |
+| 7 | Batch processing, multi-file loudness matching, variations | **done** |
+| 8 | Microphone recording, polish, a11y, perf | next |
 
 ## Presets, Mutate and undo
 
@@ -141,6 +141,23 @@ source → effect chain (EffectChain) → [resample] → normalisation gain → 
   `decodeAudioData` resamples to the context rate. Resampling happens *before* the gain/limiter so what is measured is what is
   written. 16-bit output uses seeded TPDF dither; 24-bit does not. Reverb/delay tails are rendered (`renderTail.ts`) and trailing
   silence is trimmed. Nothing is uploaded; the file is saved through a temporary object-URL link.
+
+## Batch processing (Phase 7)
+
+- **Plan** (`batch/plan.ts`): pure. *Processed copies* → `robot_hello_processed.wav`; *Variations* → `robot_attack_01.wav … _NN.wav`, each
+  using `mutateChain` with a seed derived from (base seed, source **file name**, index), so a variant is reproducible and does not
+  depend on which other files are selected or their order. Output names are unique across the whole plan.
+- **Run** (`audio/batchRunner.ts`): sequential (rendering is CPU-heavy), one bad file never stops the rest, cancellable, progress
+  reporting, injectable export function for tests. Every file uses the same chain and normalisation settings, so "Match loudness"
+  lands them all on the same target — measured: five inputs spanning 27 dB all export at −20.000 LUFS.
+- **Package**: one ZIP (`utils/zip.ts`, STORE method, CRC-32, verified against Python's `zipfile`) or separate downloads.
+- Results are tied to a snapshot of the settings that produced them; when chain/normalisation/format change they are shown as outdated.
+
+### Lesson: hidden gain in native nodes
+
+`DynamicsCompressorNode` applies an automatic make-up gain (measured up to +12.6 dB at −24 dB threshold / 20:1) that depends on
+threshold and ratio. It made presets and Mutate variants swing in loudness for reasons the sliders did not show, so the compressor is now
+our own worklet (`dsp/CompressorCore.ts`): below the threshold the gain is exactly 1.0. When using a native node, measure its actual gain.
 
 ## Web Audio gotchas found by testing (keep in mind when adding effects)
 
