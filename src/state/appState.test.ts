@@ -399,3 +399,34 @@ describe('appReducer output settings', () => {
     expect(state.history).toBe(initialAppState.history);
   });
 });
+
+describe('batch selection', () => {
+  it('selects newly added files and keeps earlier choices', () => {
+    let state = withFiles('a', 'b');
+    expect(state.selectedFileIds).toEqual(['a', 'b']);
+    state = appReducer(state, { type: 'batch/toggle', id: 'a' });
+    expect(state.selectedFileIds).toEqual(['b']);
+    state = appReducer(state, { type: 'files/added', files: [makeFile('c')] });
+    expect(state.selectedFileIds).toEqual(['b', 'c']);
+  });
+
+  it('toggles back on and ignores unknown ids', () => {
+    let state = withFiles('a');
+    state = appReducer(state, { type: 'batch/toggle', id: 'a' });
+    state = appReducer(state, { type: 'batch/toggle', id: 'a' });
+    expect(state.selectedFileIds).toEqual(['a']);
+    expect(appReducer(state, { type: 'batch/toggle', id: 'zzz' })).toBe(state);
+  });
+
+  it('setSelection keeps list order and drops unknown ids (select all / none)', () => {
+    const state = withFiles('a', 'b', 'c');
+    expect(appReducer(state, { type: 'batch/setSelection', ids: ['c', 'a', 'ghost'] }).selectedFileIds).toEqual(['a', 'c']);
+    expect(appReducer(state, { type: 'batch/setSelection', ids: [] }).selectedFileIds).toEqual([]);
+  });
+
+  it('removing or clearing files updates the selection', () => {
+    const state = withFiles('a', 'b');
+    expect(appReducer(state, { type: 'files/removed', id: 'a' }).selectedFileIds).toEqual(['b']);
+    expect(appReducer(state, { type: 'files/cleared' }).selectedFileIds).toEqual([]);
+  });
+});

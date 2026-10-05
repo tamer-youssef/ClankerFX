@@ -11,6 +11,8 @@ export { MAX_HISTORY } from './history';
 export interface AppState {
   files: LoadedFile[];
   activeFileId: string | null;
+  /** Files included in batch processing. New files start selected. */
+  selectedFileIds: string[];
   notices: Notice[];
   /** The effect chain applied to every file. */
   chain: EffectState[];
@@ -52,6 +54,8 @@ export type AppAction =
   | { type: 'files/activated'; id: string }
   | { type: 'files/removed'; id: string }
   | { type: 'files/cleared' }
+  | { type: 'batch/toggle'; id: string }
+  | { type: 'batch/setSelection'; ids: string[] }
   | { type: 'loads/started'; count: number }
   | { type: 'loads/finished'; count: number }
   | { type: 'notice/pushed'; notice: Notice }
@@ -60,6 +64,7 @@ export type AppAction =
 export const initialAppState: AppState = {
   files: [],
   activeFileId: null,
+  selectedFileIds: [],
   notices: [],
   chain: [],
   bypassAll: false,
@@ -197,6 +202,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         files: [...state.files, ...action.files],
+        selectedFileIds: [...state.selectedFileIds, ...action.files.map((file) => file.id)],
         // Newly added files take focus only if nothing was active; otherwise the user keeps their place.
         activeFileId: state.activeFileId ?? first?.id ?? null,
       };
@@ -211,10 +217,20 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       if (activeFileId === action.id) {
         activeFileId = (files[index] ?? files[index - 1])?.id ?? null;
       }
-      return { ...state, files, activeFileId };
+      return { ...state, files, activeFileId, selectedFileIds: state.selectedFileIds.filter((id) => id !== action.id) };
     }
     case 'files/cleared':
-      return { ...state, files: [], activeFileId: null };
+      return { ...state, files: [], activeFileId: null, selectedFileIds: [] };
+    case 'batch/toggle': {
+      if (!state.files.some((file) => file.id === action.id)) return state;
+      const selected = state.selectedFileIds.includes(action.id);
+      return { ...state, selectedFileIds: selected ? state.selectedFileIds.filter((id) => id !== action.id) : [...state.selectedFileIds, action.id] };
+    }
+    case 'batch/setSelection': {
+      // Keep file order and drop unknown ids so the selection can never reference a missing file.
+      const wanted = new Set(action.ids);
+      return { ...state, selectedFileIds: state.files.filter((file) => wanted.has(file.id)).map((file) => file.id) };
+    }
     case 'loads/started':
       return { ...state, pendingLoads: state.pendingLoads + action.count };
     case 'loads/finished':
@@ -224,6 +240,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'notice/dismissed':
       return { ...state, notices: state.notices.filter((notice) => notice.id !== action.id) };
   }
+}
+
+/** The selected files in list order. */
+export function getSelectedFiles(state: AppState): LoadedFile[] {
+  const selected = new Set(state.selectedFileIds);
+  return state.files.filter((file) => selected.has(file.id));
 }
 
 export function getActiveFile(state: AppState): LoadedFile | null {
