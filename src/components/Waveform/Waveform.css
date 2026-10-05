@@ -56,3 +56,10 @@
   color: var(--text-muted);
   pointer-events: none;
 }
+
+/* Two-column layout: the listening column shares the viewport with the rack, so the waveform is more compact. */
+@media (min-width: 1024px) {
+  .waveform {
+    height: clamp(150px, 25vh, 240px);
+  }
+}

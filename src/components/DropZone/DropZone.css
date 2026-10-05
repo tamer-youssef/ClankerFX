@@ -38,3 +38,9 @@
   font-weight: 600;
   color: var(--accent);
 }
+
+@media (min-width: 1024px) {
+  .empty-state {
+    height: clamp(150px, 25vh, 240px);
+  }
+}

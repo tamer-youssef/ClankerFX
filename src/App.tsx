@@ -128,6 +128,8 @@ function Workspace() {
       <Header onOpenFiles={(files) => void importFiles(files)} onNew={onNew} hasFiles={state.files.length > 0} />
 
       <main id="main" className="workspace" tabIndex={-1}>
+        {/* Left: everything you listen with (stays in view on wide screens). Right: the effect chain. */}
+        <div className="workspace__main">
         <section className="stage" aria-labelledby="stage-title">
           <h2 id="stage-title" className="sr-only">
             Waveform
@@ -170,7 +172,11 @@ function Workspace() {
         <OutputPanel />
         <FileTray />
         <BatchPanel />
-        <EffectRack />
+        </div>
+
+        <div className="workspace__rack">
+          <EffectRack />
+        </div>
       </main>
 
       <footer className="footer">

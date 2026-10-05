@@ -236,13 +236,13 @@
   color: var(--accent);
 }
 
-@media (max-width: 700px) {
+@container col (max-width: 700px) {
   .output__body {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }
 }
-@media (max-width: 640px) {
+@container col (max-width: 640px) {
   .output {
     padding: 12px;
   }

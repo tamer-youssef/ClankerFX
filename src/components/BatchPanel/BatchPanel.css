@@ -385,7 +385,7 @@
 }
 
 /* Narrow screens: table rows become stacked cards (no horizontal scroll). */
-@media (max-width: 700px) {
+@container col (max-width: 700px) {
   .batch__table-wrap {
     border: 0;
     overflow: visible;
@@ -460,7 +460,7 @@
     text-align: right;
   }
 }
-@media (max-width: 640px) {
+@container col (max-width: 640px) {
   .batch {
     padding: 12px;
   }
@@ -478,7 +478,7 @@
 }
 
 /* Very narrow phones: the name gets the full row width, the Preview button sits under it. */
-@media (max-width: 420px) {
+@container col (max-width: 420px) {
   .batch-table td.batch-table__name {
     grid-column: 2 / -1;
   }

@@ -87,12 +87,51 @@ h3 {
   outline: none;
   flex: 1;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1560px;
   margin: 0 auto;
   padding: 20px 20px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+/* Left region: waveform, transport, output, batch. A container, so its panels adapt to the column they sit in. */
+.workspace__main {
+  container: col / inline-size;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+}
+.workspace__rack {
+  min-width: 0;
+}
+/* Items keep their natural height; when the column is taller than the window it scrolls instead of squashing panels
+   (a flex item with overflow, like the file tray, would otherwise shrink to a sliver). */
+.workspace__main > * {
+  flex-shrink: 0;
+}
+
+/*
+ * Wide screens: two columns. The listening column is sticky, so the waveform and play button never scroll away while you
+ * work down a long effect chain. If it is taller than the window (e.g. a big batch table) it scrolls on its own.
+ */
+@media (min-width: 1024px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1.2fr) minmax(400px, 0.8fr);
+    gap: 20px;
+  }
+  .workspace__main {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    /* Room for focus rings, which overflow clipping would otherwise cut off. */
+    padding: 3px;
+    margin: -3px;
+  }
 }
 
 .stage {
