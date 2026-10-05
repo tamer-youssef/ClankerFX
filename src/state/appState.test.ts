@@ -6,7 +6,7 @@ import type { Preset } from '../types/presets';
 import { appReducer, canRedo, canUndo, getActiveFile, initialAppState, MAX_HISTORY, type AppAction, type AppState } from './appState';
 
 // The reducer never touches the buffer, so a stand-in object is enough here.
-const makeFile = (id: string): LoadedFile => ({ id, name: `${id}.wav`, sizeBytes: 1, buffer: {} as AudioBuffer });
+const makeFile = (id: string): LoadedFile => ({ id, name: `${id}.wav`, sizeBytes: 1, buffer: {} as AudioBuffer, sourceSampleRate: null });
 
 const withFiles = (...ids: string[]): AppState =>
   appReducer(initialAppState, { type: 'files/added', files: ids.map(makeFile) });

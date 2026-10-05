@@ -4,6 +4,11 @@ export interface LoadedFile {
   name: string;
   sizeBytes: number;
   buffer: AudioBuffer;
+  /**
+   * Sample rate stored in the file, when it could be read from the header. decodeAudioData resamples to the
+   * context rate, so this is how "original sample rate" export knows what the source really was.
+   */
+  sourceSampleRate: number | null;
 }
 
 export type PlaybackState = 'stopped' | 'playing' | 'paused';
