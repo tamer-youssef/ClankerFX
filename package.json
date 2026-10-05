@@ -3,14 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "MechVox — a local, DSP-only effects rack for robot, radio and game voices.",
+  "description": "MechVox \u2014 a local, DSP-only effects rack for robot, radio and game voices.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:browser": "node scripts/check-in-browser.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

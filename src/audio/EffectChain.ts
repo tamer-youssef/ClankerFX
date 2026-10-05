@@ -56,6 +56,11 @@ export class EffectChain {
     }
   }
 
+  /** Restarts every effect's free-running phases at context time `at`. */
+  reset(at: number): void {
+    for (const slot of this.slots) slot.reset(at);
+  }
+
   dispose(): void {
     for (const slot of this.slots) slot.dispose();
     this.slots = [];

@@ -1,3 +1,4 @@
+import { Lfo } from '../audio/Lfo';
 import { setParam } from '../audio/paramUtils';
 import { defineEffect } from './BaseEffect';
 
@@ -30,12 +31,11 @@ export const chorusEffect = defineEffect<ChorusParams>({
     const output = context.createGain();
     const voices = [1, SECOND_VOICE_RATE_RATIO].map((rateRatio) => {
       const delay = context.createDelay(0.05);
-      const lfo = context.createOscillator();
       const lfoDepth = context.createGain();
       const level = context.createGain();
       level.gain.value = 0.6;
-      lfo.connect(lfoDepth).connect(delay.delayTime);
-      lfo.start();
+      lfoDepth.connect(delay.delayTime);
+      const lfo = new Lfo(context, [lfoDepth]);
       delay.connect(level).connect(output);
       return { delay, lfo, lfoDepth, level, rateRatio };
     });
@@ -48,14 +48,15 @@ export const chorusEffect = defineEffect<ChorusParams>({
       update(params, immediate) {
         for (const voice of voices) {
           setParam(context, voice.delay.delayTime, params.delayMs / 1000, immediate);
-          setParam(context, voice.lfo.frequency, params.rateHz * voice.rateRatio, immediate);
+          voice.lfo.setFrequency(params.rateHz * voice.rateRatio, immediate);
           setParam(context, voice.lfoDepth.gain, params.depthMs / 1000, immediate);
         }
       },
+      reset: (at) => voices.forEach((voice) => voice.lfo.restart(at)),
       dispose() {
         for (const voice of voices) {
-          voice.lfo.stop();
-          [voice.delay, voice.lfo, voice.lfoDepth, voice.level].forEach((node) => node.disconnect());
+          voice.lfo.dispose();
+          [voice.delay, voice.lfoDepth, voice.level].forEach((node) => node.disconnect());
         }
         input.disconnect();
         output.disconnect();

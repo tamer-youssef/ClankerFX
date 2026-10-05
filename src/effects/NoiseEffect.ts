@@ -50,21 +50,28 @@ export const noiseEffect = defineEffect<NoiseParams>({
     lowCut.connect(highCut).connect(level);
 
     let source: AudioBufferSourceNode | null = null;
+    let noiseBuffer: AudioBuffer | null = null;
     let activeKind = -1;
+    /** Starts a fresh looping source at `at`, replacing the current one at exactly that moment. */
+    const startSource = (at?: number) => {
+      if (!noiseBuffer) return;
+      const previous = source;
+      source = context.createBufferSource();
+      source.buffer = noiseBuffer;
+      source.loop = true;
+      source.connect(lowCut);
+      source.start(at);
+      previous?.stop(at);
+      if (previous) previous.onended = () => previous.disconnect();
+    };
     const setKind = (kind: number) => {
       if (kind === activeKind) return;
       activeKind = kind;
-      source?.stop();
-      source?.disconnect();
       const length = Math.floor(context.sampleRate * LOOP_SECONDS);
       const channels = generateNoise(KINDS[kind] ?? 'white', length, 2);
-      const buffer = context.createBuffer(2, length, context.sampleRate);
-      channels.forEach((data, channel) => buffer.copyToChannel(data as Float32Array<ArrayBuffer>, channel));
-      source = context.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(lowCut);
-      source.start();
+      noiseBuffer = context.createBuffer(2, length, context.sampleRate);
+      channels.forEach((data, channel) => noiseBuffer!.copyToChannel(data as Float32Array<ArrayBuffer>, channel));
+      startSource();
     };
 
     return {
@@ -76,6 +83,7 @@ export const noiseEffect = defineEffect<NoiseParams>({
         setParam(context, highCut.frequency, params.highCutHz, immediate);
         setParam(context, level.gain, dbToGain(params.levelDb), immediate);
       },
+      reset: (at) => startSource(at),
       dispose() {
         source?.stop();
         [source, lowCut, highCut, level, input].forEach((node) => node?.disconnect());

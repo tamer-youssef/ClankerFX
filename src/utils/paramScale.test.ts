@@ -26,7 +26,9 @@ describe('paramScale', () => {
   });
 
   it('formats values', () => {
-    expect(formatParamValue(log, 3200)).toBe('3.20 k Hz');
+    expect(formatParamValue(log, 3200)).toBe('3.2 kHz');
+    expect(formatParamValue(log, 12000)).toBe('12 kHz');
+    expect(formatParamValue(log, 440)).toBe('440 Hz');
     expect(formatParamValue({ ...linear, unit: 'dB' }, 2.5)).toBe('2.5 dB');
     expect(formatParamValue({ ...linear, percent: true, min: 0, max: 1, step: 0.01 }, 0.35)).toBe('35%');
     expect(formatParamValue({ ...linear, options: [{ value: 1, label: 'One' }] }, 1)).toBe('One');

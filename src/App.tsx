@@ -46,6 +46,14 @@ function Workspace() {
     [engine, dispatch],
   );
 
+  useEffect(
+    () =>
+      engine.on('workletError', (message) =>
+        dispatch({ type: 'notice/pushed', notice: { id: createId('notice'), kind: 'warning', message } }),
+      ),
+    [engine, dispatch],
+  );
+
   // Space toggles playback anywhere except while a control that uses Space has focus.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

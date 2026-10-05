@@ -1,3 +1,4 @@
+import { Lfo } from '../audio/Lfo';
 import { setParam } from '../audio/paramUtils';
 import { defineEffect } from './BaseEffect';
 
@@ -35,24 +36,24 @@ export const tremoloEffect = defineEffect<TremoloParams>({
   resolve: (amount, params) => ({ mix: 1, params: { ...params, depth: params.depth * amount } }),
   create(context) {
     const output = context.createGain();
-    const lfo = context.createOscillator();
     const lfoDepth = context.createGain();
     // gain(t) = (1 - depth/2) + (depth/2)·lfo(t), which swings between 1 - depth and 1.
-    lfo.connect(lfoDepth).connect(output.gain);
-    lfo.start();
+    lfoDepth.connect(output.gain);
+    const lfo = new Lfo(context, [lfoDepth]);
 
     return {
       input: output,
       output,
       update(params, immediate) {
-        setParam(context, lfo.frequency, params.rateHz, immediate);
-        lfo.type = SHAPES[params.shape] ?? 'sine';
+        lfo.setFrequency(params.rateHz, immediate);
+        lfo.setType(SHAPES[params.shape] ?? 'sine');
         setParam(context, lfoDepth.gain, params.depth / 2, immediate);
         setParam(context, output.gain, 1 - params.depth / 2, immediate);
       },
+      reset: (at) => lfo.restart(at),
       dispose() {
-        lfo.stop();
-        [lfo, lfoDepth, output].forEach((node) => node.disconnect());
+        lfo.dispose();
+        [lfoDepth, output].forEach((node) => node.disconnect());
       },
     };
   },

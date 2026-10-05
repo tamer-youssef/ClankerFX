@@ -1,3 +1,4 @@
+import { Lfo } from '../audio/Lfo';
 import { setParam } from '../audio/paramUtils';
 import { defineEffect } from './BaseEffect';
 
@@ -46,11 +47,9 @@ export const phaserEffect = defineEffect<PhaserParams>({
       stage.Q.value = 0.8;
       return stage;
     });
-    const lfo = context.createOscillator();
     const lfoDepth = context.createGain();
-    lfo.connect(lfoDepth);
     for (const stage of stages) lfoDepth.connect(stage.frequency);
-    lfo.start();
+    const lfo = new Lfo(context, [lfoDepth]);
 
     // Web Audio mutes any cycle that lacks a DelayNode, so the feedback path carries the minimum
     // delay (one render quantum, ~3 ms). That slightly colours high-feedback settings, which is why feedback is capped at 80%.
@@ -83,15 +82,16 @@ export const phaserEffect = defineEffect<PhaserParams>({
       output,
       update(params, immediate) {
         wire(Math.min(MAX_STAGES, Math.max(2, Math.round(params.stages))));
-        setParam(context, lfo.frequency, params.rateHz, immediate);
+        lfo.setFrequency(params.rateHz, immediate);
         // The LFO adds linearly to each stage's frequency; ±80% of centre at full depth.
         setParam(context, lfoDepth.gain, params.centerHz * params.depth * 0.8, immediate);
         for (const stage of stages) setParam(context, stage.frequency, params.centerHz, immediate);
         setParam(context, feedback.gain, params.feedback, immediate);
       },
+      reset: (at) => lfo.restart(at),
       dispose() {
-        lfo.stop();
-        [input, output, lfo, lfoDepth, feedbackDelay, feedback, feedbackSum, ...stages].forEach((node) => node.disconnect());
+        lfo.dispose();
+        [input, output, lfoDepth, feedbackDelay, feedback, feedbackSum, ...stages].forEach((node) => node.disconnect());
       },
     };
   },

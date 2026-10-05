@@ -1,23 +1,31 @@
 import { createId } from '../utils/id';
 import type { EffectState } from '../types/effects';
 import { defaultParams, type EffectDefinition } from './BaseEffect';
+import { bitcrusherEffect } from './BitcrusherEffect';
 import { chorusEffect } from './ChorusEffect';
 import { compressorEffect } from './CompressorEffect';
 import { delayEffect } from './DelayEffect';
 import { distortionEffect } from './DistortionEffect';
 import { eqEffect } from './EQEffect';
 import { filterEffect } from './FilterEffect';
+import { flangerEffect } from './FlangerEffect';
 import { gainEffect } from './GainEffect';
 import { noiseEffect } from './NoiseEffect';
+import { pitchEffect } from './PitchEffect';
 import { phaserEffect } from './PhaserEffect';
 import { reverbEffect } from './ReverbEffect';
 import { ringModEffect } from './RingModEffect';
 import { stereoEffect } from './StereoEffect';
 import { tremoloEffect } from './TremoloEffect';
+import { vocoderEffect } from './VocoderEffect';
 
 /** Display order of the "Add Effect" menu. Adding an effect = writing its file and listing it here. */
 const DEFINITIONS: readonly EffectDefinition[] = [
+  pitchEffect,
+  vocoderEffect,
   ringModEffect,
+  bitcrusherEffect,
+  flangerEffect,
   distortionEffect,
   filterEffect,
   eqEffect,

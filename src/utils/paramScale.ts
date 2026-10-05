@@ -25,7 +25,11 @@ export function formatParamValue(spec: ParamSpec, value: number): string {
   const option = spec.options?.find((candidate) => candidate.value === value);
   if (option) return option.label;
   if (spec.percent) return `${Math.round(value * 100)}%`;
+  if (spec.unit === 'Hz' && value >= 1000) {
+    // 7500 → "7.5 kHz", 3200 → "3.2 kHz", 12000 → "12 kHz"
+    return `${Number((value / 1000).toFixed(2))} kHz`;
+  }
   const decimals = spec.step >= 1 ? 0 : spec.step >= 0.1 ? 1 : 2;
-  const text = value >= 1000 && spec.unit === 'Hz' ? `${(value / 1000).toFixed(2)} k` : value.toFixed(decimals);
+  const text = value.toFixed(decimals);
   return spec.unit ? `${text} ${spec.unit}` : text;
 }

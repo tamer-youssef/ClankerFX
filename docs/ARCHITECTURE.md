@@ -99,8 +99,8 @@ Normalisation is applied *after* effects because they change loudness. For expor
 | --- | --- | --- |
 | 1 | Project setup, layout, file loading, waveform, transport | **done** |
 | 2 | `EffectChain`, effect abstraction, native-node effects, Amount sliders, rack UI | **done** |
-| 3 | AudioWorklet infrastructure: pitch shift, vocoder, flanger, bitcrusher | next |
-| 4 | Presets, drag-reorder, mutate, undo/redo | |
+| 3 | AudioWorklet infrastructure: pitch shift, vocoder, flanger, bitcrusher | **done** |
+| 4 | Presets, mutate, undo/redo (drag-reorder already shipped in Phase 2) | next |
 | 5 | Peak normalise, LUFS matching, limiter | |
 | 6 | Offline render, WAV export | |
 | 7 | Batch processing, variations | |
@@ -114,17 +114,33 @@ Normalisation is applied *after* effects because they change loudness. For expor
 - A cycle with no `DelayNode` is muted by the browser, and a delay inside a cycle cannot be shorter than 128 samples.
 - Don't `cancelScheduledValues` before `setTargetAtTime` while a slider is moving; it snaps the param back and zippers.
 
+## Realtime = export
+
+Preview and export use the same effect builders, and playback start is made deterministic: at every start the engine calls
+`EffectChain.reset(at)` and then starts the source at that same moment (25 ms in the future). Native LFOs are swapped for
+fresh oscillators scheduled at `at` (`audio/Lfo.ts`); worklets receive `{type:'reset', frame}` and reset their DSP state at
+that exact frame (`CoreProcessor` splits the render block at the sample). A message applied on arrival would be wrong,
+because the worklet keeps advancing its phases through the silence before the source starts. Result: for a playback from
+the start, realtime and offline renders of every effect differ by ≥ 100 dB SNR (floating-point noise).
+
 ## Verification
 
 Pure logic is unit-tested with Vitest (`npm test`). Web Audio nodes cannot run in Node, so effect behaviour is verified by
 rendering the real `EffectChain` through an `OfflineAudioContext` in headless Chromium and checking: finite/bounded output,
-transparency at 0 %, exact dry signal when disabled/bypassed, decaying feedback, and reorder/removal.
+transparency at 0 %, exact dry signal when disabled/bypassed, decaying feedback, reorder/removal, and realtime-vs-offline
+equivalence. Run it with `NODE_PATH=$(npm root -g) npm run check:browser` (it needs Playwright + Chromium, deliberately not a
+project dependency; it starts its own Vite server). DSP cores in `dsp/` have numerical unit tests: pitch accuracy, comb-filter
+geometry, quantiser levels, vocoder band-envelope tracking on synthetic speech.
+
+Lesson: never run these checks against a long-lived `vite` dev server. A warm server served a stale worklet and produced
+false "identical" results; the script therefore always starts a fresh one.
 
 ## Known limits / notes
 
 - The output stage currently uses a native `DynamicsCompressorNode` as an interim safety limiter; Phase 5 replaces it
   with a brickwall limiter.
-- Free-running LFOs/noise start when an effect is created, so their phase differs between realtime preview and export.
+- Realtime and export match when playback starts from the beginning. After a mid-file seek, modulator phases are relative to the seek point, not the file position.
+- The pitch shifter is a time-domain two-tap design: formants move with pitch and a little granular warble remains (see `PitchShiftCore`).
 
 - `decodeAudioData` resamples to the context sample rate, so "original sample rate" on export will need the
   source rate captured separately (planned in Phase 6).

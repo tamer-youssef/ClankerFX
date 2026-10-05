@@ -1,4 +1,4 @@
-import { setParam } from '../audio/paramUtils';
+import { Lfo } from '../audio/Lfo';
 import { defineEffect } from './BaseEffect';
 
 interface RingModParams {
@@ -36,20 +36,18 @@ export const ringModEffect = defineEffect<RingModParams>({
     // value is 0, so the node's gain at any instant *is* the carrier sample.
     const multiplier = context.createGain();
     multiplier.gain.value = 0;
-    const carrier = context.createOscillator();
-    carrier.connect(multiplier.gain);
-    carrier.start();
+    const carrier = new Lfo(context, [multiplier.gain]);
 
     return {
       input: multiplier,
       output: multiplier,
       update(params, immediate) {
-        setParam(context, carrier.frequency, params.frequencyHz, immediate);
-        carrier.type = SHAPES[params.shape] ?? 'sine';
+        carrier.setFrequency(params.frequencyHz, immediate);
+        carrier.setType(SHAPES[params.shape] ?? 'sine');
       },
+      reset: (at) => carrier.restart(at),
       dispose() {
-        carrier.stop();
-        carrier.disconnect();
+        carrier.dispose();
         multiplier.disconnect();
       },
     };

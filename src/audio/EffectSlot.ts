@@ -53,6 +53,10 @@ export class EffectSlot {
     setParam(this.context, this.wet.gain, wet, immediate);
   }
 
+  reset(at: number): void {
+    this.runtime.reset?.(at);
+  }
+
   dispose(): void {
     this.runtime.dispose();
     for (const node of [this.input, this.dry, this.wet, this.output]) node.disconnect();

@@ -3,6 +3,7 @@ import type { ChainOptions, EffectState } from '../types/effects';
 import { Emitter } from '../utils/emitter';
 import { EffectChain } from './EffectChain';
 import { createSafetyLimiter } from './OutputStage';
+import { loadWorklets } from './worklets';
 import { clampSeek, positionAt, type ClockAnchor } from './playbackClock';
 
 interface EngineEvents {
@@ -15,7 +16,12 @@ interface EngineEvents {
   loop: boolean;
   /** An effect failed to initialise and is being skipped. */
   effectError: { id: string; message: string };
+  /** The AudioWorklet module could not be loaded, so worklet-based effects are unavailable. */
+  workletError: string;
 }
+
+/** Delay between asking for playback and audio actually starting. Imperceptible, but guarantees effect resets land first. */
+const START_LEAD_SECONDS = 0.025;
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -39,6 +45,9 @@ export class AudioEngine extends Emitter<EngineEvents> {
   private context: AudioContext | null = null;
   private output: GainNode | null = null;
   private chain: EffectChain | null = null;
+  /** Resolves once worklet processors are loaded (or have failed). Playback and chain sync wait for it. */
+  private ready: Promise<void> = Promise.resolve();
+  private chainReady = false;
   private chainConfig: { effects: readonly EffectState[]; options: ChainOptions } = {
     effects: [],
     options: { bypassAll: false, bypassedIds: new Set() },
@@ -66,16 +75,29 @@ export class AudioEngine extends Emitter<EngineEvents> {
       });
       const limiter = createSafetyLimiter(this.context);
       this.chain.output.connect(limiter).connect(this.output);
-      // First sync is immediate: there is nothing to smooth from yet.
-      this.chain.sync(this.chainConfig.effects, this.chainConfig.options, true);
+      this.ready = this.prepareChain(this.context, this.chain);
     }
     return this.context;
+  }
+
+  /** Loads worklets, then applies the pending chain. Failure degrades to "worklet effects are skipped", never a crash. */
+  private async prepareChain(context: AudioContext, chain: EffectChain): Promise<void> {
+    try {
+      await loadWorklets(context);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      this.emit('workletError', `Pitch Shift, Vocoder, Flanger and Bitcrusher are unavailable: ${reason}`);
+    }
+    if (this.chain !== chain) return; // engine was disposed meanwhile
+    this.chainReady = true;
+    // First sync is immediate: there is nothing to smooth from yet.
+    chain.sync(this.chainConfig.effects, this.chainConfig.options, true);
   }
 
   /** Declares the desired effect chain. Safe to call before audio has ever played; applied once the context exists. */
   setChain(effects: readonly EffectState[], options: ChainOptions): void {
     this.chainConfig = { effects, options };
-    this.chain?.sync(effects, options, false);
+    if (this.chainReady) this.chain?.sync(effects, options, false);
   }
 
   getBuffer(): AudioBuffer | null {
@@ -115,6 +137,9 @@ export class AudioEngine extends Emitter<EngineEvents> {
     if (!this.buffer || this.state === 'playing') return;
     const context = this.getContext();
     if (context.state === 'suspended') await context.resume();
+    await this.ready;
+    // The user may have paused/stopped or switched files while worklets were loading.
+    if (this.getState() === 'playing' || !this.buffer) return;
     this.startSourceAt(this.restingPosition);
     this.setState('playing');
   }
@@ -177,6 +202,7 @@ export class AudioEngine extends Emitter<EngineEvents> {
     this.context = null;
     this.output = null;
     this.chain = null;
+    this.chainReady = false;
   }
 
   private startSourceAt(offset: number): void {
@@ -200,13 +226,17 @@ export class AudioEngine extends Emitter<EngineEvents> {
       this.emit('seek', 0);
     };
 
+    // Start slightly in the future so the chain can restart its free-running phases first (worklets learn about
+    // it via a message). Every effect then begins at phase 0 exactly as the audio does, as in an offline render.
+    const startAt = context.currentTime + START_LEAD_SECONDS;
+    chain.reset(startAt);
     this.anchor = {
-      startContextTime: context.currentTime,
+      startContextTime: startAt,
       startOffset: offset,
       loop: this.loopEnabled,
       duration: buffer.duration,
     };
-    source.start(0, offset);
+    source.start(startAt, offset);
     this.source = source;
   }
 

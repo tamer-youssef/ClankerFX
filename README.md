@@ -5,10 +5,10 @@ Everything is deterministic DSP running locally — no AI, no server, no uploads
 
 > Audio processing happens locally on your device.
 
-**Status:** Phases 1–2 of 8 — load audio, waveform, transport, and a reorderable effect rack with Amount sliders
-(ring modulator, distortion, filter, EQ, chorus, phaser, compressor, delay, reverb, tremolo, noise, stereo width, gain).
-Pitch shift, vocoder, flanger, bitcrusher (AudioWorklets), presets, normalisation, export, batch processing and
-recording follow the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+**Status:** Phases 1–3 of 8 — load audio, waveform, transport, and a reorderable effect rack with Amount sliders:
+pitch shift, vocoder, ring modulator, bitcrusher, flanger (AudioWorklets) plus distortion, filter, EQ, chorus, phaser,
+compressor, delay, reverb, tremolo, noise, stereo width and gain. Presets, mutate, undo/redo, normalisation, export, batch
+processing and recording follow the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Develop
 
@@ -17,6 +17,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # unit tests (vitest)
 npm run build      # typecheck + production build
+NODE_PATH=$(npm root -g) npm run check:browser   # render all effects in headless Chromium (needs Playwright)
 ```
 
 Stack: React 19, TypeScript (strict), Vite, Web Audio API, AudioWorklet. No backend.

@@ -45,6 +45,12 @@ export interface EffectRuntime<P> {
   output: AudioNode;
   /** Apply parameters. `immediate` skips smoothing (offline render / initial setup). */
   update(params: P, immediate: boolean): void;
+  /**
+   * Restart free-running internal phases (LFOs, noise loops, worklet state) so they begin at audio time `at`.
+   * Called whenever playback starts; this is what makes a preview from the start match the offline render.
+   * Effects without free-running state omit it.
+   */
+  reset?(at: number): void;
   dispose(): void;
 }
 
