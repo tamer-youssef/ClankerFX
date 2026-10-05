@@ -52,11 +52,16 @@ export function Transport() {
         <LoopIcon />
       </button>
 
-      <div className="transport__time" aria-label="Current time and duration">
+      {/* Deliberately not a live region: the clock ticks every frame while playing. */}
+      <div className="transport__time">
+        <span className="sr-only">Position </span>
         <span ref={timeRef} className="transport__current">
           {formatTime(0)}
         </span>
-        <span className="transport__sep">/</span>
+        <span className="transport__sep" aria-hidden="true">
+          /
+        </span>
+        <span className="sr-only"> of </span>
         <span className="transport__duration">{formatTime(duration)}</span>
       </div>
     </div>

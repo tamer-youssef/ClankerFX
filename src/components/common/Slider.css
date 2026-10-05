@@ -46,12 +46,12 @@
 .slider__input::-webkit-slider-runnable-track {
   height: var(--track-height);
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent) var(--fill), #28303a var(--fill));
+  background: linear-gradient(90deg, var(--accent) var(--fill), var(--control) var(--fill));
 }
 .slider__input::-moz-range-track {
   height: var(--track-height);
   border-radius: 999px;
-  background: #28303a;
+  background: var(--control);
 }
 .slider__input::-moz-range-progress {
   height: var(--track-height);

@@ -8,17 +8,6 @@
   gap: 12px;
   min-width: 0;
 }
-.batch .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
 .batch__head {
   display: flex;
   align-items: center;
@@ -107,7 +96,7 @@
 }
 .batch-table th:nth-child(1),
 .batch-table td:nth-child(1) {
-  width: 40px;
+  width: 48px;
 }
 .batch-table th:nth-child(2) {
   width: auto;
@@ -144,8 +133,9 @@
 .batch-table input[type='checkbox'],
 .batch-options input[type='radio'] {
   accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
+  display: block;
+  width: 24px;
+  height: 24px;
   margin: 0;
 }
 .batch-table input:focus-visible,
@@ -155,9 +145,7 @@
 }
 .batch-name {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 .batch-table__num,
 .batch-table__clip {
@@ -172,9 +160,11 @@
 .batch-row--off .batch-name {
   color: var(--text-muted);
 }
+/* Outdated results: muted colour rather than opacity, which would drop them below 4.5:1. */
 .batch-row--stale .batch-table__num,
-.batch-row--stale .batch-table__clip {
-  opacity: 0.5;
+.batch-row--stale .batch-table__clip,
+.batch-row--stale .batch-clip {
+  color: var(--text-muted);
 }
 .batch-table__status {
   font-size: 12px;
@@ -216,7 +206,7 @@
   color: var(--danger);
 }
 .batch-preview {
-  height: 26px;
+  height: 28px;
   padding: 0 8px;
   white-space: nowrap;
   font-size: 12px;
@@ -326,9 +316,7 @@
 .batch__name-list li {
   padding: 3px 8px;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 4px;
@@ -336,6 +324,7 @@
   font-size: 12px;
 }
 .batch__more {
+  min-height: 24px;
   padding: 2px 0;
   background: none;
   border: 0;
@@ -366,7 +355,7 @@
 .batch__bar {
   height: 8px;
   background: var(--bg);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--control);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -456,6 +445,7 @@
     justify-content: space-between;
     gap: 12px;
     padding-left: 38px;
+    min-width: 0;
   }
   .batch-table td[data-label]:not(.batch-table__name)::before {
     content: attr(data-label);
@@ -484,5 +474,18 @@
   .batch__go {
     flex: 1 1 100%;
     height: 40px;
+  }
+}
+
+/* Very narrow phones: the name gets the full row width, the Preview button sits under it. */
+@media (max-width: 420px) {
+  .batch-table td.batch-table__name {
+    grid-column: 2 / -1;
+  }
+  .batch-table td.batch-table__act {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    text-align: left;
+    margin-bottom: 4px;
   }
 }

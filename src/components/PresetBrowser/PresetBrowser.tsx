@@ -17,6 +17,9 @@ export function PresetBrowser() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cancelRenameRef = useRef(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  /** The preset whose Rename button should get focus back once the rename input unmounts. */
+  const refocusRenameRef = useRef<string | null>(null);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -24,6 +27,15 @@ export function PresetBrowser() {
     setConfirmId(null);
   }, []);
   useDismiss(open, containerRef, close);
+
+  // The rename input disappears on commit/cancel; hand focus back to that row's Rename button instead of dropping it on <body>.
+  useEffect(() => {
+    if (renamingId !== null || refocusRenameRef.current === null) return;
+    const id = refocusRenameRef.current;
+    refocusRenameRef.current = null;
+    const rows = panelRef.current?.querySelectorAll<HTMLElement>('[data-rename-button]') ?? [];
+    for (const button of rows) if (button.dataset.renameButton === id) button.focus();
+  }, [renamingId]);
 
   // Delete confirmation expires on its own.
   useEffect(() => {
@@ -64,6 +76,10 @@ export function PresetBrowser() {
 
   const commitRename = (preset: Preset) => {
     const trimmed = renameValue.trim();
+    // Only when the input still has focus (Enter/Escape); a blur caused by clicking elsewhere keeps focus where it went.
+    if (document.activeElement instanceof HTMLInputElement && document.activeElement.classList.contains('preset-row__rename')) {
+      refocusRenameRef.current = preset.id;
+    }
     setRenamingId(null);
     if (cancelRenameRef.current) {
       cancelRenameRef.current = false;
@@ -84,6 +100,7 @@ export function PresetBrowser() {
       event.preventDefault();
       event.nativeEvent.stopImmediatePropagation();
       cancelRenameRef.current = true;
+      refocusRenameRef.current = preset.id;
       setRenamingId(null);
     }
   };
@@ -95,6 +112,8 @@ export function PresetBrowser() {
     }
     setConfirmId(null);
     dispatch({ type: 'presets/deleted', id: preset.id });
+    // The focused Delete button is about to unmount; keep focus inside the popover.
+    panelRef.current?.focus();
   };
 
   const renderRow = (preset: Preset) => {
@@ -127,7 +146,7 @@ export function PresetBrowser() {
         {!editing && (
           <span className="preset-row__actions">
             {!builtIn && (
-              <button type="button" className="preset-row__action" aria-label={`Rename ${preset.name}`} onClick={() => startRename(preset)}>
+              <button type="button" className="preset-row__action" aria-label={`Rename ${preset.name}`} data-rename-button={preset.id} onClick={() => startRename(preset)}>
                 Rename
               </button>
             )}
@@ -159,6 +178,7 @@ export function PresetBrowser() {
         className="btn preset-browser__trigger"
         aria-haspopup="dialog"
         aria-expanded={open}
+        title={selected ? selected.name : undefined}
         onClick={() => (open ? close() : setOpen(true))}
       >
         <span className="preset-browser__label">{selected ? label : 'Presets'}</span>
@@ -170,7 +190,7 @@ export function PresetBrowser() {
         )}
       </button>
       {open && (
-        <div className="preset-browser__panel" role="dialog" aria-label="Presets">
+        <div ref={panelRef} className="preset-browser__panel" role="dialog" aria-label="Presets" tabIndex={-1}>
           <form className="preset-browser__save" onSubmit={save}>
             <input
               className="preset-browser__input"
@@ -186,14 +206,14 @@ export function PresetBrowser() {
             </button>
           </form>
 
-          <h3 className="preset-browser__heading">My presets</h3>
+          <h2 className="preset-browser__heading">My presets</h2>
           {state.userPresets.length === 0 ? (
             <p className="preset-browser__empty">No saved presets yet. Build a chain, then save it above.</p>
           ) : (
             <ul className="preset-browser__list">{state.userPresets.map(renderRow)}</ul>
           )}
 
-          <h3 className="preset-browser__heading">Built-in</h3>
+          <h2 className="preset-browser__heading">Built-in</h2>
           <ul className="preset-browser__list">{builtInPresets.map(renderRow)}</ul>
         </div>
       )}

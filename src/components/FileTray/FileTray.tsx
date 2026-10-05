@@ -27,7 +27,18 @@ export function FileTray() {
               type="button"
               className="file-chip__remove"
               aria-label={`Remove ${file.name}`}
-              onClick={() => dispatch({ type: 'files/removed', id: file.id })}
+              onClick={(event) => {
+                // The button unmounts with its chip: move focus to a neighbouring chip, or to the workspace when none is left.
+                const chip = event.currentTarget.closest('li');
+                const neighbour = chip?.nextElementSibling ?? chip?.previousElementSibling ?? null;
+                dispatch({ type: 'files/removed', id: file.id });
+                requestAnimationFrame(() => {
+                  const target = neighbour?.isConnected
+                    ? neighbour.querySelector<HTMLElement>('.file-chip__select')
+                    : document.querySelector<HTMLElement>('.empty-state .btn, #main');
+                  target?.focus();
+                });
+              }}
             >
               <CloseIcon />
             </button>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, type MouseEvent } from 'react';
 import { isWebAudioSupported } from './audio/AudioEngine';
 import { BatchPanel } from './components/BatchPanel/BatchPanel';
 import { DropOverlay, EmptyState } from './components/DropZone/DropZone';
@@ -17,7 +17,7 @@ import { useFileDrop } from './hooks/useFileDrop';
 import { saveUserPresets } from './presets/presetStorage';
 import { AppProvider, useApp } from './state/AppContext';
 import { getActiveFile } from './state/appState';
-import { formatBytes } from './utils/format';
+import { formatBytes, formatTime } from './utils/format';
 import { createId } from './utils/id';
 
 /** Fields where Ctrl+Z means "undo my typing", not "undo the last chain edit". */
@@ -30,6 +30,12 @@ function isTextField(target: EventTarget | null): boolean {
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(target.tagName);
+}
+
+/** Skip link target: move focus too, so the next Tab continues inside the workspace in every browser. */
+function focusMain(event: MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
+  document.getElementById('main')?.focus();
 }
 
 function Workspace() {
@@ -116,10 +122,20 @@ function Workspace() {
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main" onClick={focusMain}>
+        Skip to main content
+      </a>
       <Header onOpenFiles={(files) => void importFiles(files)} onNew={onNew} hasFiles={state.files.length > 0} />
 
-      <main className="workspace">
-        <section className="stage" aria-label="Waveform">
+      <main id="main" className="workspace" tabIndex={-1}>
+        <section className="stage" aria-labelledby="stage-title">
+          <h2 id="stage-title" className="sr-only">
+            Waveform
+          </h2>
+          {/* Polite announcement when a file becomes the active one (the visual change is easy to miss without sight). */}
+          <p className="sr-only" role="status">
+            {activeFile ? `Active file: ${activeFile.name}, ${formatTime(activeFile.buffer.duration)}` : ''}
+          </p>
           {activeFile ? (
             <>
               <div className="stage__meta">

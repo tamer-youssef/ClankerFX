@@ -39,6 +39,7 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const [suffixDraft, setSuffixDraft] = useState(exportSettings.filenameSuffix);
 
+  const wasBusyRef = useRef(false);
   const setExport = (changes: Partial<ExportSettings>) => dispatch({ type: 'output/setExport', changes });
 
   const requestClose = useCallback(() => {
@@ -49,12 +50,16 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
-    const first = dialog?.querySelector<HTMLElement>('select, input, button');
+    const first = dialog?.querySelector<HTMLElement>('select, input') ?? dialog?.querySelector<HTMLElement>('button');
     (first ?? dialog)?.focus();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // The dialog is portaled outside #root, so making the app inert hides it from assistive tech and Tab while it is open.
+    const root = document.getElementById('root');
+    root?.setAttribute('inert', '');
     return () => {
       document.body.style.overflow = previousOverflow;
+      root?.removeAttribute('inert');
       opener?.focus();
     };
   }, []);
@@ -135,6 +140,16 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
       setBusy(false);
     }
   };
+
+  // Rendering parks focus on the dialog (every button is disabled); once it ends, put focus back on the main action.
+  useEffect(() => {
+    if (busy) {
+      wasBusyRef.current = true;
+    } else if (wasBusyRef.current) {
+      wasBusyRef.current = false;
+      dialogRef.current?.querySelector<HTMLElement>('[data-primary]')?.focus();
+    }
+  }, [busy]);
 
   // The file can disappear while the dialog is open (New): close rather than show stale options.
   useEffect(() => {
@@ -240,7 +255,7 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
             </span>
           </p>
 
-          <div className="export-levels" aria-label="Expected final levels">
+          <div className="export-levels">
             <h3 className="export-levels__title">
               Expected levels{measuring ? <span className="export-levels__measuring"> · Measuring…</span> : null}
             </h3>
@@ -268,7 +283,7 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
             )}
             {m?.clipped && (
               <p className="export-warning export-warning--danger">
-                {'▲'} CLIPPING: the result exceeds 0 dBFS. Turn the limiter on or lower the target.
+                <span aria-hidden="true">{'▲ '}</span>CLIPPING: the result exceeds 0 dBFS. Turn the limiter on or lower the target.
               </p>
             )}
             {overs && <p className="export-warning">Inter-sample overs: true peak is above 0 dBTP.</p>}
@@ -307,7 +322,7 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
           <button type="button" className="btn" onClick={requestClose} disabled={busy}>
             {saved ? 'Done' : 'Cancel'}
           </button>
-          <button type="button" className="btn btn--primary" onClick={() => void runExport()} disabled={busy}>
+          <button type="button" className="btn btn--primary" data-primary onClick={() => void runExport()} disabled={busy}>
             {busy ? 'Rendering…' : error ? 'Retry export' : 'Export WAV'}
           </button>
         </div>

@@ -11,7 +11,7 @@ export function EmptyState({ onOpenFiles, loading }: EmptyStateProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="empty-state">
-      <p className="empty-state__title">{loading ? 'Decoding audio…' : 'Drop a voice recording here'}</p>
+      <p className="empty-state__title" role="status">{loading ? 'Decoding audio…' : 'Drop a voice recording here'}</p>
       <p className="empty-state__sub">WAV, MP3, OGG, FLAC or M4A — one file or many. Nothing is uploaded.</p>
       <button type="button" className="btn btn--primary" onClick={() => inputRef.current?.click()} disabled={loading}>
         Choose audio files…

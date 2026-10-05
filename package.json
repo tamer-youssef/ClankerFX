@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:browser": "node scripts/check-in-browser.mjs"
+    "check:browser": "node scripts/check-in-browser.mjs",
+    "check:a11y": "node scripts/check-a11y.mjs",
+    "check:privacy": "node scripts/check-privacy.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

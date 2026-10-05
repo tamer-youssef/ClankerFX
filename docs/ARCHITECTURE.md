@@ -104,7 +104,7 @@ Normalisation is applied *after* effects because they change loudness. For expor
 | 5 | Peak normalise, LUFS matching, brickwall limiter, level readouts | **done** |
 | 6 | Offline render, WAV export (16/24-bit, sample rate, mono/stereo) | **done** |
 | 7 | Batch processing, multi-file loudness matching, variations | **done** |
-| 8 | Microphone recording, polish, a11y, perf | next |
+| 8 | Microphone recording, polish, a11y, perf | **done** |
 
 ## Presets, Mutate and undo
 
@@ -159,6 +159,23 @@ source → effect chain (EffectChain) → [resample] → normalisation gain → 
 threshold and ratio. It made presets and Mutate variants swing in loudness for reasons the sliders did not show, so the compressor is now
 our own worklet (`dsp/CompressorCore.ts`): below the threshold the gain is exactly 1.0. When using a native node, measure its actual gain.
 
+## Microphone, performance, accessibility (Phase 8)
+
+- **Recording** (`audio/MicRecorder.ts`): `getUserMedia` with echo cancellation / noise suppression / AGC **off** (a voice-FX tool wants the raw
+  signal), captured on the audio thread by an AudioWorklet and never connected to the destination (no monitoring feedback). The mic is
+  released on every path: stop, discard, dispose, start failure, closing the dialog mid-take. Errors map to friendly messages.
+- **CPU:** a silent effect (disabled, bypassed, or amount 0) disposes its runtime and rebuilds a fresh one on re-enable — never merely
+  disconnected, because a frozen delay line or reverb would replay stale audio. Worklet processors must also be told to stop
+  (`process()` returns false), since a disconnected worklet keeps running. Measured on 20 s of audio: eight disabled worklet/reverb
+  effects 2614 ms → 60 ms (empty chain 21 ms).
+- **Accessibility** (WCAG 2.2 AA): `npm run check:a11y` walks every UI state at 1280 and 390 px with axe-core plus keyboard, contrast
+  (composited backgrounds), target-size (≥ 24 px) and reflow assertions. Forced-colors and reduced-motion rules are covered.
+- **Privacy:** `npm run check:privacy` runs a full workflow (including a microphone take and a batch ZIP) on a fresh production build and fails
+  on any cross-origin request, request body, non-GET method or WebSocket. Measured: 5 requests, all same-origin GETs.
+- **Offline-ready:** web manifest and icons are in place and no resource is fetched from another origin. A service worker is deliberately
+  not added yet (caching strategy and update UX deserve their own design); `vite-plugin-pwa` or a hand-written worker can be added without
+  touching the audio code.
+
 ## Web Audio gotchas found by testing (keep in mind when adding effects)
 
 - `lowpass`/`highpass` `Q` is in **dB** and defaults to 1 dB (a resonant peak). Inside a feedback loop this made the
@@ -177,6 +194,11 @@ because the worklet keeps advancing its phases through the silence before the so
 the start, realtime and offline renders of every effect differ by ≥ 100 dB SNR (floating-point noise).
 
 ## Verification
+
+Test the tests: a first version of the realtime-vs-offline check captured audio with a main-thread `ScriptProcessorNode`, which silently drops
+blocks. ~70 % of single attempts were garbage and a retry loop hid it for hours, which led to a wrong "CPU contention" diagnosis. Bisecting
+and then capturing on the audio thread (0/50 failures) showed the app was never at fault. The check now uses lossless capture and a
+single attempt per effect.
 
 Pure logic is unit-tested with Vitest (`npm test`). Web Audio nodes cannot run in Node, so effect behaviour is verified by
 rendering the real `EffectChain` through an `OfflineAudioContext` in headless Chromium and checking: finite/bounded output,

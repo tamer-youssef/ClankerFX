@@ -1,4 +1,4 @@
-import { memo, useRef, useState, type DragEvent } from 'react';
+import { memo, useEffect, useRef, useState, type DragEvent } from 'react';
 import { getEffectDefinition } from '../../effects/registry';
 import { useApp } from '../../state/AppContext';
 import type { EffectState } from '../../types/effects';
@@ -37,11 +37,28 @@ export const EffectCard = memo(function EffectCard({
   const { dispatch } = useApp();
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLElement>(null);
+  const upRef = useRef<HTMLButtonElement>(null);
+  const downRef = useRef<HTMLButtonElement>(null);
+  /** Which move button was used, so keyboard focus can follow the card to its new position. */
+  const movedRef = useRef<'up' | 'down' | null>(null);
+
+  // Reordering moves the card in the DOM (and may disable the button that was just pressed); keep focus on a move button.
+  useEffect(() => {
+    const moved = movedRef.current;
+    if (moved === null) return;
+    movedRef.current = null;
+    const preferred = moved === 'up' ? upRef.current : downRef.current;
+    const other = moved === 'up' ? downRef.current : upRef.current;
+    (preferred && !preferred.disabled ? preferred : other)?.focus();
+  }, [index]);
   const definition = getEffectDefinition(effect.type);
   if (!definition) return null;
 
   const advancedId = `advanced-${effect.id}`;
-  const move = (toIndex: number) => dispatch({ type: 'chain/move', fromIndex: index, toIndex });
+  const move = (toIndex: number) => {
+    movedRef.current = toIndex < index ? 'up' : 'down';
+    dispatch({ type: 'chain/move', fromIndex: index, toIndex });
+  };
   const classes = ['effect-card'];
   if (!effect.enabled) classes.push('effect-card--off');
   if (bypassed) classes.push('effect-card--bypassed');
@@ -61,6 +78,8 @@ export const EffectCard = memo(function EffectCard({
           type="button"
           className="effect-card__grip"
           draggable
+          // Pointer-only handle: the Move up / Move down buttons are the keyboard alternative, so keep this out of the tab order.
+          tabIndex={-1}
           aria-label={`Drag to reorder ${definition.label}`}
           title="Drag to reorder"
           onDragStart={(event) => {
@@ -91,7 +110,10 @@ export const EffectCard = memo(function EffectCard({
         >
           <span className="effect-card__led" aria-hidden="true" />
           <span className="effect-card__title">{definition.label}</span>
-          <span className="effect-card__state">{effect.enabled ? 'ON' : 'OFF'}</span>
+          {/* The switch already exposes its state; spoken "Delay ON, on" would be redundant (and its name would flip). */}
+          <span className="effect-card__state" aria-hidden="true">
+            {effect.enabled ? 'ON' : 'OFF'}
+          </span>
         </button>
 
         <div className="effect-card__tools">
@@ -99,15 +121,17 @@ export const EffectCard = memo(function EffectCard({
             type="button"
             className="btn btn--small"
             aria-pressed={bypassed}
+            aria-label={`Bypass ${definition.label}`}
             onClick={() => dispatch({ type: 'bypass/toggleEffect', id: effect.id })}
             title="A/B: hear the voice without this effect (not saved)"
           >
             Bypass
           </button>
-          <button type="button" className="icon-btn" aria-label={`Move ${definition.label} up`} disabled={index === 0} onClick={() => move(index - 1)}>
+          <button ref={upRef} type="button" className="icon-btn" aria-label={`Move ${definition.label} up`} disabled={index === 0} onClick={() => move(index - 1)}>
             ▲
           </button>
           <button
+            ref={downRef}
             type="button"
             className="icon-btn"
             aria-label={`Move ${definition.label} down`}
@@ -121,7 +145,17 @@ export const EffectCard = memo(function EffectCard({
             className="icon-btn"
             aria-label={`Remove ${definition.label}`}
             title="Remove effect"
-            onClick={() => dispatch({ type: 'chain/remove', id: effect.id })}
+            onClick={() => {
+              // This button is about to unmount: hand focus to the neighbouring card's Remove button, or to Add Effect.
+              const neighbour = cardRef.current?.nextElementSibling ?? cardRef.current?.previousElementSibling ?? null;
+              dispatch({ type: 'chain/remove', id: effect.id });
+              requestAnimationFrame(() => {
+                const target = neighbour?.isConnected
+                  ? neighbour.querySelector<HTMLElement>('.icon-btn[aria-label^="Remove"]')
+                  : document.querySelector<HTMLElement>('.add-effect > button');
+                target?.focus();
+              });
+            }}
           >
             <CloseIcon />
           </button>
@@ -131,6 +165,7 @@ export const EffectCard = memo(function EffectCard({
       <div className="effect-card__amount">
         <Slider
           label="Amount"
+          accessibleName={`${definition.label} amount`}
           size="large"
           position={effect.amount}
           valueText={`${Math.round(effect.amount * 100)}%`}
@@ -152,7 +187,7 @@ export const EffectCard = memo(function EffectCard({
       </button>
 
       {expanded && (
-        <div id={advancedId} className="effect-card__advanced">
+        <div id={advancedId} className="effect-card__advanced" role="group" aria-label={`${definition.label} advanced settings`}>
           <p className="effect-card__hint">{definition.description} Amount scales these settings: 0% is transparent, 100% is exactly what is set here.</p>
           {Object.entries(definition.params).map(([key, spec]) => (
             <ParamControl

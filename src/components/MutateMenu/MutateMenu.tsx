@@ -77,7 +77,7 @@ export function MutateMenu() {
       </button>
       {open && !chainEmpty && (
         <div className="mutate-menu__panel" role="dialog" aria-label="Mutate chain">
-          <h3 className="mutate-menu__heading">Mutate chain</h3>
+          <h2 className="mutate-menu__heading">Mutate chain</h2>
           <ul className="mutate-menu__list">
             {INTENSITIES.map((item) => (
               <li key={item.value}>
@@ -90,7 +90,7 @@ export function MutateMenu() {
           </ul>
           <p className="mutate-menu__note">Applies in place. Each click is one undo step.</p>
 
-          <h3 className="mutate-menu__heading mutate-menu__heading--section">Save variations</h3>
+          <h2 className="mutate-menu__heading mutate-menu__heading--section">Save variations</h2>
           <div className="mutate-menu__variants">
             <label className="mutate-menu__field">
               <span>Count</span>

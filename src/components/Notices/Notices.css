@@ -1,15 +1,23 @@
 .notices {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   position: fixed;
   right: 16px;
   bottom: 48px;
   z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 8px;
   max-width: min(440px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.notices__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.notices__group:not(:empty) ~ .notices__group:not(:empty) {
+  margin-top: 8px;
+}
+.notice {
+  pointer-events: auto;
 }
 .notice {
   display: flex;
@@ -28,11 +36,19 @@
 }
 .notice__message {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .notice__close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 28px;
+  min-height: 28px;
+  margin: -4px -6px -4px 0;
   background: none;
   border: 0;
-  padding: 2px;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
 }

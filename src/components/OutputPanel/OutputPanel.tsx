@@ -45,9 +45,8 @@ export function OutputPanel() {
         <h2 id="output-title" className="panel-title">
           Output
         </h2>
-        <span className="output__measuring" role="status" aria-live="polite">
-          {measuring ? 'Measuring…' : ''}
-        </span>
+        {/* Not a live region: levels are re-measured on every edit, which would make a screen reader chatter. */}
+        <span className="output__measuring">{measuring ? 'Measuring…' : ''}</span>
       </div>
 
       <div className="output__body">
@@ -139,7 +138,7 @@ export function OutputPanel() {
           </div>
         </div>
 
-        <div className="output__readouts" aria-label="Output levels">
+        <div className="output__readouts" role="group" aria-label="Output levels">
           {m === null ? (
             <p className="output__placeholder">{hasFile ? (measuring ? 'Measuring…' : 'No levels yet.') : 'Load audio to see levels'}</p>
           ) : (
@@ -159,7 +158,8 @@ export function OutputPanel() {
                 <div className="readout readout--status">
                   <dt className="readout__label">Clipping</dt>
                   <dd className={`readout__value clip ${m.clipped ? 'clip--bad' : 'clip--ok'}`}>
-                    {m.clipped ? '▲ CLIPPING' : '● OK'}
+                    <span aria-hidden="true">{m.clipped ? '▲ ' : '● '}</span>
+                    {m.clipped ? 'CLIPPING' : 'OK'}
                   </dd>
                 </div>
               </dl>

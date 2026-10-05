@@ -6,12 +6,15 @@
   --line: #232a33;
   --line-strong: #323c48;
   --text: #d9dfe7;
-  --text-muted: #7f8b99;
+  /* Muted text: >= 4.5:1 on every surface it sits on, including hover and accent-tinted ones. */
+  --text-muted: #8e9aa8;
   --accent: #f0a13a;
   --accent-line: rgba(240, 161, 58, 0.45);
   --accent-dim: rgba(240, 161, 58, 0.12);
   --accent-dim-hover: rgba(240, 161, 58, 0.2);
-  --danger: #e5564d;
+  --danger: #ee6a61;
+  /* Borders and tracks of form controls: >= 3:1 against the panels (WCAG 1.4.11). */
+  --control: #5f6b79;
   --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
 }
@@ -38,13 +41,50 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}
+
 .app {
   min-height: 100%;
   display: flex;
   flex-direction: column;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 100;
+  padding: 8px 14px;
+  background: var(--panel-raised);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+
 .workspace {
+  outline: none;
   flex: 1;
   width: 100%;
   max-width: 1280px;
@@ -66,6 +106,7 @@ body {
 }
 .stage__meta {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 16px;
   padding: 0 4px;
@@ -75,9 +116,8 @@ body {
 }
 .stage__file {
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .stage__controls {
   display: flex;
@@ -150,9 +190,16 @@ body {
   background: var(--accent-dim);
   border-color: var(--accent-line);
   color: var(--accent);
+  /* Not colour alone: a bar under a pressed toggle. */
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 .btn:focus-visible,
-button:focus-visible {
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role='slider']:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -171,5 +218,105 @@ button:focus-visible {
   * {
     transition: none !important;
     animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows High Contrast / forced colors: the palette is replaced by system colors, so anything that is drawn only with a
+   background colour (and would vanish) gets a border or outline, and the accent rings use the system focus colour. */
+@media (forced-colors: active) {
+  .btn:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role='slider']:focus-visible {
+    outline-color: Highlight;
+  }
+  .btn[aria-pressed='true'],
+  .btn--primary,
+  .file-chip--active {
+    border-color: Highlight;
+    border-width: 2px;
+  }
+
+  /* Things drawn only with a background colour or a shadow disappear in forced colors; give them system colours. */
+  .waveform {
+    --wave-fill: CanvasText;
+    --wave-axis: GrayText;
+  }
+  .waveform__playhead,
+  .effect-card--drop-before::before,
+  .effect-card--drop-after::after,
+  .batch__bar-fill,
+  .recorder__meter-fill {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  .waveform__playhead {
+    box-shadow: none;
+  }
+  .waveform__progress {
+    border-right: 1px solid GrayText;
+  }
+  .slider__input::-webkit-slider-runnable-track {
+    forced-color-adjust: none;
+    background: linear-gradient(90deg, Highlight var(--fill), GrayText var(--fill));
+  }
+  .slider__input::-moz-range-track {
+    forced-color-adjust: none;
+    background: GrayText;
+  }
+  .slider__input::-moz-range-progress {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  .slider__input::-webkit-slider-thumb,
+  .slider__input::-moz-range-thumb {
+    forced-color-adjust: none;
+    background: ButtonText;
+    border-color: Canvas;
+  }
+  .effect-card__led {
+    forced-color-adjust: none;
+    background: Canvas;
+    box-shadow: none;
+    border: 2px solid ButtonText;
+  }
+  .effect-card__power[aria-checked='true'] .effect-card__led {
+    background: Highlight;
+    border-color: Highlight;
+    box-shadow: none;
+  }
+  .switch__track {
+    forced-color-adjust: none;
+    background: Canvas;
+    border-color: ButtonText;
+  }
+  .switch__track::after {
+    forced-color-adjust: none;
+    background: ButtonText;
+  }
+  .switch input:checked + .switch__track {
+    background: Highlight;
+    border-color: Highlight;
+  }
+  .switch input:checked + .switch__track::after {
+    background: HighlightText;
+  }
+  .segmented__option[aria-checked='true'] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .batch-row--active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .header__record-dot,
+  .recorder__dot {
+    forced-color-adjust: none;
+    background: CanvasText;
   }
 }

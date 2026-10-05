@@ -3,6 +3,8 @@ import './Slider.css';
 
 interface SliderProps {
   label: string;
+  /** Spoken name when the visible label is too terse out of context (e.g. "Amount" repeated on every card). */
+  accessibleName?: string;
   /** Normalised 0–1 position; mapping to real values (linear/log/step) is the caller's job. */
   position: number;
   valueText: string;
@@ -18,7 +20,7 @@ interface SliderProps {
 
 const RESOLUTION = 1000;
 
-export function Slider({ label, position, valueText, onPositionChange, onStep, size = 'small', disabled }: SliderProps) {
+export function Slider({ label, accessibleName, position, valueText, onPositionChange, onStep, size = 'small', disabled }: SliderProps) {
   const id = useId();
   const percent = Math.round(position * 100);
   return (
@@ -35,6 +37,7 @@ export function Slider({ label, position, valueText, onPositionChange, onStep, s
         step={1}
         value={Math.round(position * RESOLUTION)}
         disabled={disabled}
+        aria-label={accessibleName}
         aria-valuetext={valueText}
         style={{ '--fill': `${percent}%` } as React.CSSProperties}
         onChange={(event) => onPositionChange(Number(event.target.value) / RESOLUTION)}
@@ -46,9 +49,10 @@ export function Slider({ label, position, valueText, onPositionChange, onStep, s
           onStep(direction, event.key === 'PageUp' || event.key === 'PageDown' || event.shiftKey);
         }}
       />
-      <output htmlFor={id} className="slider__value">
+      {/* Plain text, not <output> (an implicit live region that would announce every drag step); the slider's aria-valuetext carries the value. */}
+      <span className="slider__value" aria-hidden="true">
         {valueText}
-      </output>
+      </span>
     </div>
   );
 }

@@ -10,8 +10,12 @@ export function useDialogBehavior(dialogRef: RefObject<HTMLElement | null>, onEs
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // The dialog is portaled outside #root, so making the app inert hides it from assistive tech and Tab while it is open.
+    const root = document.getElementById('root');
+    root?.setAttribute('inert', '');
     return () => {
       document.body.style.overflow = previousOverflow;
+      root?.removeAttribute('inert');
     };
   }, []);
 

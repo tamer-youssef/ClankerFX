@@ -19,6 +19,7 @@
 .file-chip--active {
   border-color: var(--accent-line);
   background: var(--accent-dim);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 .file-chip__select {
   display: flex;
@@ -34,9 +35,9 @@
   cursor: pointer;
 }
 .file-chip__name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Wrap rather than truncate: the file name is the identity of the chip. */
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 .file-chip__meta {
   font-family: var(--font-mono);

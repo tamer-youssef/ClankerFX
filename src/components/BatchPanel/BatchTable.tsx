@@ -228,7 +228,8 @@ export function BatchTable({
                     <span
                       className={`batch-clip ${clipped ? "batch-clip--bad" : "batch-clip--ok"}`}
                     >
-                      {clipped ? "▲ CLIP" : "● OK"}
+                      <span aria-hidden="true">{clipped ? "▲ " : "● "}</span>
+                      {clipped ? "CLIP" : "OK"}
                     </span>
                   ) : (
                     "—"

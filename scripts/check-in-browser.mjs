@@ -190,7 +190,10 @@ try {
         chain.output.connect(ctx.destination);
         chain.sync([effect], options, true);
         source.start();
-        return (await ctx.startRendering()).getChannelData(0);
+        const rendered = await ctx.startRendering();
+        // The realtime tap is mono (it downmixes), so compare against the mono mix of the offline render.
+        const left = rendered.getChannelData(0), right = rendered.getChannelData(1);
+        return Float32Array.from(left, (value, i) => (value + right[i]) / 2);
       };
       const realtimeRender = async (effect) => {
         const ctx = new AudioContext({ sampleRate: SR });
@@ -201,36 +204,52 @@ try {
         source.buffer = buffer;
         const chain = new EffectChain(ctx);
         source.connect(chain.input);
-        const blocks = [];
-        const tap = ctx.createScriptProcessor(2048, 2, 2);
-        tap.onaudioprocess = (e) => blocks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+        // Capture on the AUDIO thread with the app's own recorder worklet. (An earlier version used a main-thread
+        // ScriptProcessorNode, which silently drops blocks: ~70 % of single attempts were garbage and only a retry loop
+        // hid it. Bisecting proved the app was never at fault.)
+        const tap = new AudioWorkletNode(ctx, 'mechvox-recorder', { numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1, channelCountMode: 'explicit' });
+        const chunks = [];
+        let flushed;
+        const done = new Promise((resolve) => (flushed = resolve));
+        tap.port.onmessage = (event) => {
+          if (event.data instanceof Float32Array) chunks.push(event.data);
+          else if (event.data && event.data.type === 'flushed') flushed();
+        };
         chain.output.connect(tap);
-        tap.connect(ctx.destination);
         chain.sync([effect], options, true);
         await ctx.resume();
         const startAt = ctx.currentTime + 0.3;
         chain.reset(startAt); // exactly what AudioEngine does when playback starts
         source.start(startAt);
-        await new Promise((resolve) => setTimeout(resolve, 2200));
-        const all = new Float32Array(blocks.length * 2048);
-        blocks.forEach((b, i) => all.set(b, i * 2048));
+        await new Promise((resolve) => setTimeout(resolve, 2100));
+        tap.port.postMessage({ type: 'flush' });
+        await done;
+        const all = new Float32Array(chunks.reduce((n, c) => n + c.length, 0));
+        let offset = 0;
+        for (const c of chunks) { all.set(c, offset); offset += c.length; }
         await ctx.close();
         return all;
       };
+      // The realtime start time is `currentTime + 0.3`; a floating-point epsilon can round it to a neighbouring sample, and
+      // hard-clipping effects (distortion at +20 dB drive is nearly a square wave) turn a 1-sample offset into a large error.
+      // That is start jitter, not an effect property, so allow ±3 samples of alignment and keep the best match.
       const snr = (a, b) => {
-        const oa = onset(a), ob = onset(b), n = Math.min(40000, a.length - oa, b.length - ob);
-        let err = 0, sig = 0;
-        for (let i = 0; i < n; i++) { err += (a[oa + i] - b[ob + i]) ** 2; sig += a[oa + i] ** 2; }
-        return 10 * Math.log10(sig / (err + 1e-20));
+        const oa = onset(a), ob = onset(b);
+        let best = -Infinity;
+        for (let shift = -3; shift <= 3; shift++) {
+          const n = Math.min(40000, a.length - oa, b.length - ob - Math.max(0, shift));
+          let err = 0, sig = 0;
+          for (let i = 0; i < n; i++) { err += (a[oa + i] - b[ob + shift + i]) ** 2; sig += a[oa + i] ** 2; }
+          best = Math.max(best, 10 * Math.log10(sig / (err + 1e-20)));
+        }
+        return best;
       };
       const out = {};
       for (const type of ['pitch', 'vocoder', 'bitcrusher', 'flanger', 'ringmod', 'tremolo', 'chorus', 'phaser', 'distortion', 'filter', 'eq', 'delay', 'reverb', 'gain']) {
         const effect = { ...createEffectState(type), amount: 1 };
         const offline = await offlineRender(effect);
-        let best = -Infinity;
-        // Headless Chromium occasionally drops ScriptProcessor blocks; one clean capture proves equivalence.
-        for (let attempt = 0; attempt < 8 && best < 60; attempt++) best = Math.max(best, snr(offline, await realtimeRender(effect)));
-        out[type] = best;
+        // One attempt, no retries: with lossless capture a failure here is a real realtime/offline discrepancy.
+        out[type] = snr(offline, await realtimeRender(effect));
       }
       return out;
     });

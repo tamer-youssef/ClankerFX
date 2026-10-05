@@ -1,6 +1,7 @@
 .effect-card {
   position: relative;
-  background: linear-gradient(180deg, #171c23, #13171d);
+  /* Solid (not a gradient) so contrast can be verified against it. */
+  background: #151a20;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 14px 12px;
@@ -10,7 +11,15 @@
   transition: opacity 150ms, border-color 150ms;
 }
 .effect-card--off {
-  opacity: 0.55;
+  /* Marked off without fading the card (that would drop its text below 4.5:1 while every control still works):
+     dashed edge, muted title, grey amount slider, plus the ON/OFF word and the switch state. */
+  border-style: dashed;
+}
+.effect-card--off .effect-card__title {
+  color: var(--text-muted);
+}
+.effect-card--off .effect-card__amount {
+  filter: grayscale(1);
 }
 .effect-card--bypassed {
   border-color: var(--accent-line);
@@ -44,11 +53,12 @@
 .effect-card__grip {
   display: grid;
   place-items: center;
-  width: 22px;
+  width: 28px;
   height: 28px;
   padding: 0;
   background: none;
   border: 0;
+  border-radius: 6px;
   color: var(--text-muted);
   cursor: grab;
 }
@@ -57,6 +67,7 @@
 }
 .effect-card__power {
   display: flex;
+  min-height: 28px;
   align-items: center;
   gap: 10px;
   padding: 4px 8px 4px 4px;
@@ -96,21 +107,21 @@
   gap: 4px;
 }
 .btn--small {
-  height: 26px;
+  height: 28px;
   padding: 0 10px;
   font-size: 12px;
 }
 .icon-btn {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   background: none;
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 11px;
   cursor: pointer;
 }
 .icon-btn:hover:not(:disabled) {
@@ -128,7 +139,8 @@
 .effect-card__advanced-toggle {
   align-self: flex-start;
   margin-left: 22px;
-  padding: 2px 6px;
+  min-height: 28px;
+  padding: 2px 8px;
   background: none;
   border: 0;
   border-radius: 4px;
@@ -158,7 +170,7 @@
 .select {
   height: 28px;
   background: var(--panel-raised);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--control);
   border-radius: 6px;
   color: var(--text);
   font: inherit;
@@ -182,5 +194,18 @@
   .slider .slider__input {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+}
+
+@media (max-width: 400px) {
+  .effect-card {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .effect-card__power {
+    gap: 6px;
+  }
+  .effect-card__title {
+    letter-spacing: 0.06em;
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { canRedo, canUndo, getActiveFile } from '../../state/appState';
 import { useApp } from '../../state/AppContext';
 import { micUnsupportedReason } from '../../audio/micErrors';
@@ -22,21 +22,42 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
   const [recordOpen, setRecordOpen] = useState(false);
   const recordButtonRef = useRef<HTMLButtonElement>(null);
   const recordUnavailable = micUnsupportedReason();
-  const closeRecorder = useCallback(() => {
-    setRecordOpen(false);
-    recordButtonRef.current?.focus();
-  }, []);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const closeRecorder = useCallback(() => setRecordOpen(false), []);
+  const closeExport = useCallback(() => setExportOpen(false), []);
+
+  // Dialogs make the app inert while open, so focus goes back to the opener after they have unmounted. (Some browsers do
+  // not focus a button on click, so the dialogs cannot rely on document.activeElement to find it.)
+  const dialogWasOpen = useRef<'record' | 'export' | null>(null);
+  useEffect(() => {
+    const open = recordOpen ? 'record' : exportOpen ? 'export' : null;
+    if (open === null && dialogWasOpen.current !== null) {
+      (dialogWasOpen.current === 'record' ? recordButtonRef : exportButtonRef).current?.focus();
+    }
+    dialogWasOpen.current = open;
+  }, [recordOpen, exportOpen]);
   const canExport = getActiveFile(state) !== null;
 
   return (
     <header className="header">
       <div className="header__brand">
         <Logo />
-        <span className="header__name">MechVox</span>
+        <h1 className="header__name">
+          MechVox<span className="sr-only"> — voice effects rack</span>
+        </h1>
       </div>
 
       <div className="header__actions">
-        <button type="button" className="btn" onClick={onNew} disabled={!hasFiles}>
+        <button
+          type="button"
+          className="btn"
+          disabled={!hasFiles}
+          onClick={() => {
+            onNew();
+            // New disables itself; move focus to the empty state's main action rather than dropping it.
+            requestAnimationFrame(() => document.querySelector<HTMLElement>('.empty-state .btn')?.focus());
+          }}
+        >
           New
         </button>
         <button type="button" className="btn" onClick={() => inputRef.current?.click()}>
@@ -76,6 +97,7 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
         <PresetBrowser />
         <MutateMenu />
         <button
+          ref={exportButtonRef}
           type="button"
           className="btn btn--primary"
           disabled={!canExport}
@@ -87,7 +109,7 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
         </button>
       </div>
       {recordOpen && <Recorder onClose={closeRecorder} />}
-      {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
+      {exportOpen && <ExportDialog onClose={closeExport} />}
     </header>
   );
 }

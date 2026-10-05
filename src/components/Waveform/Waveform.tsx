@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { computePeaksAsync, resamplePeaks, type PeakData } from '../../analysis/waveformPeaks';
 import { usePlayhead } from '../../hooks/useEngine';
 import { useApp } from '../../state/AppContext';
+import { formatTime } from '../../utils/format';
 import { clamp } from '../../utils/math';
 import './Waveform.css';
 
@@ -91,6 +92,7 @@ export function Waveform({ buffer }: WaveformProps) {
     if (surface && engine.getState() !== 'playing') {
       // Updating the slider value every frame would make screen readers chatter, so only do it at rest.
       surface.setAttribute('aria-valuenow', position.toFixed(2));
+      surface.setAttribute('aria-valuetext', `${formatTime(position)} of ${formatTime(buffer.duration)}`);
     }
   });
 
@@ -132,6 +134,7 @@ export function Waveform({ buffer }: WaveformProps) {
       aria-valuemin={0}
       aria-valuemax={Number(buffer.duration.toFixed(2))}
       aria-valuenow={0}
+      aria-valuetext={`${formatTime(0)} of ${formatTime(buffer.duration)}`}
       onKeyDown={onKeyDown}
       onPointerDown={(event) => {
         dragging.current = true;
