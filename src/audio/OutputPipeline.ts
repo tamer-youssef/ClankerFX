@@ -2,6 +2,7 @@ import { measureLoudness } from '../analysis/LoudnessAnalyzer';
 import { applyGainDb, computeNormalizationGain } from '../analysis/Normalizer';
 import { linearToDb, samplePeak, truePeak } from '../analysis/PeakAnalyzer';
 import { limitBuffer } from '../dsp/LimiterCore';
+import { resampleChannels } from '../dsp/resample';
 import type { Measurements, NormalizationSettings } from '../types/output';
 
 export interface FinalizeInput {
@@ -11,9 +12,13 @@ export interface FinalizeInput {
   /** Sample peak (linear) of the original source, for the "input peak" readout. */
   inputPeak: number;
   settings: NormalizationSettings;
+  /** Convert to this sample rate first, so gain and limiting are applied to (and measured on) the audio that is written. */
+  resampleTo?: number;
 }
 
 export interface FinalizeOutput {
+  /** Sample rate of `channels` (differs from the input when `resampleTo` was used). */
+  sampleRate: number;
   measurements: Measurements;
   /** Final audio; omitted when only measurements were requested. */
   channels?: Float32Array[];
@@ -25,7 +30,10 @@ export interface FinalizeOutput {
  * Normalisation is measured on the processed audio because effects change loudness.
  */
 export function finalizeOutput(input: FinalizeInput, returnAudio: boolean): FinalizeOutput {
-  const { rendered, sampleRate, settings } = input;
+  const { settings } = input;
+  const resample = input.resampleTo !== undefined && input.resampleTo !== input.sampleRate;
+  const sampleRate = resample ? input.resampleTo! : input.sampleRate;
+  const rendered = resample ? resampleChannels(input.rendered, input.sampleRate, sampleRate) : input.rendered;
   const outputPeak = samplePeak(rendered);
   const loudness = settings.mode === 'loudness' ? measureLoudness(rendered, sampleRate).lufs : null;
   const loudnessForDisplay = settings.mode === 'loudness' ? loudness : measureLoudness(rendered, sampleRate).lufs;
@@ -53,5 +61,5 @@ export function finalizeOutput(input: FinalizeInput, returnAudio: boolean): Fina
     clipped: finalPeak > 1,
     ...(warning ? { warning } : {}),
   };
-  return returnAudio ? { measurements, channels: final.map((channel) => channel.slice()) } : { measurements };
+  return returnAudio ? { sampleRate, measurements, channels: final.map((channel) => channel.slice()) } : { sampleRate, measurements };
 }
