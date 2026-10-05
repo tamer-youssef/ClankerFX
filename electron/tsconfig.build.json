@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": false, "outDir": "../electron-dist", "rootDir": "." },
+  "include": ["./main.ts", "./preload.ts", "./security.ts", "../src/types/clankerfx.d.ts"]
+}

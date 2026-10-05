@@ -23,7 +23,7 @@ touch "$work/.nojekyll"
 cd "$work"
 git init -q -b gh-pages
 git add -A
-git -c user.name="${GIT_AUTHOR_NAME:-MechVox deploy}" -c user.email="${GIT_AUTHOR_EMAIL:-deploy@users.noreply.github.com}" \
+git -c user.name="${GIT_AUTHOR_NAME:-ClankerFX deploy}" -c user.email="${GIT_AUTHOR_EMAIL:-deploy@users.noreply.github.com}" \
   commit -q -m "Deploy $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 git push --force "$remote_url" gh-pages:gh-pages
 echo "Published. Site: https://$(echo "$remote_url" | sed -E 's#.*[:/]([^/]+)/[^/]+$#\1#').github.io/${repo}/"

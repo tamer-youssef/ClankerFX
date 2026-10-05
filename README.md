@@ -1,6 +1,6 @@
-# MechVox
+# ClankerFX
 
-A browser-based audio effects rack for designing **robot, radio, mechanical and sci-fi game voices**.
+A desktop (Electron) and browser-based audio effects rack for designing **robot, radio, mechanical and sci-fi game voices**.
 Everything is deterministic DSP running locally — no AI, no server, no uploads, no per-use cost.
 
 > Audio processing happens locally on your device.
@@ -25,7 +25,27 @@ NODE_PATH=$(npm root -g) npm run check:a11y      # axe-core + keyboard/contrast/
 NODE_PATH=$(npm root -g) npm run check:privacy   # full workflow on a production build; nothing may leave the device
 ```
 
-Stack: React 19, TypeScript (strict), Vite, Web Audio API, AudioWorklet. No backend.
+## Desktop app (Electron, unsigned, personal use)
+
+```bash
+npm run electron:dev     # Vite hot reload inside Electron
+npm run electron:start   # build everything and run the desktop app
+npm run electron:pack    # unpacked app in release/ (fast; tests the packaged layout)
+npm run electron:dist    # installer for the OS you run it on: .dmg (macOS), NSIS .exe (Windows), AppImage (Linux)
+```
+
+Installers are **not signed or notarized** and there is no auto-update, which is fine for your own machines:
+macOS: right-click → Open the first time (or `xattr -cr /Applications/ClankerFX.app`); Windows: SmartScreen → More info → Run anyway.
+Build each installer on its own OS. The shell serves the built app from a private `app://clankerfx/` origin (AudioWorklets and
+workers cannot load from `file://`), blocks every network request, allows only the microphone (audio) permission, and saves
+exports/batches through native Save/Folder dialogs. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#desktop-shell-electron).
+
+```bash
+NODE_PATH=$(npm root -g) xvfb-run -a npm run check:electron   # launches the real app: isolation, export, batch, mic, no network
+CLANKERFX_EXE=release/linux-unpacked/clankerfx …              # same check against the packaged build
+```
+
+Stack: React 19, TypeScript (strict), Vite, Web Audio API, AudioWorklet, Electron shell. No backend.
 
 ## Shortcuts
 

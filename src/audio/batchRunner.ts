@@ -4,7 +4,8 @@ import type { EffectState } from '../types/effects';
 import type { ExportSettings, Measurements, NormalizationSettings } from '../types/output';
 import type { MutationIntensity } from '../types/presets';
 import { createZip } from '../utils/zip';
-import { downloadBlob, exportProcessed, type ExportJob, type ExportResult } from './exporter';
+import { exportProcessed, type ExportJob, type ExportResult } from './exporter';
+import { saveBlob, saveFiles, type SaveResult } from './saveFile';
 
 export interface BatchItemResult {
   jobId: string;
@@ -104,19 +105,14 @@ export function summarizeBatch(results: readonly BatchItemResult[]): BatchSummar
 
 export type BatchPackaging = 'zip' | 'separate';
 
-/** One ZIP of all successful files (a single download prompt) — or one download per file. Nothing is uploaded. */
-export async function downloadBatch(results: readonly BatchItemResult[], packaging: BatchPackaging, archiveName = 'mechvox_batch.zip'): Promise<void> {
+/** One ZIP of all successful files (a single save prompt) — or one file each. Nothing is uploaded. */
+export async function downloadBatch(results: readonly BatchItemResult[], packaging: BatchPackaging, archiveName = 'clankerfx_batch.zip'): Promise<SaveResult> {
   const ready = results.filter((result): result is BatchItemResult & { bytes: Uint8Array } => result.ok && result.bytes !== undefined);
   if (ready.length === 0) throw new Error('There are no processed files to download');
 
   if (packaging === 'zip') {
     const archive = createZip(ready.map((result) => ({ name: result.outputName, data: result.bytes })));
-    downloadBlob(new Blob([archive], { type: 'application/zip' }), archiveName);
-    return;
+    return saveBlob(new Blob([archive], { type: 'application/zip' }), archiveName);
   }
-  for (const result of ready) {
-    downloadBlob(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: 'audio/wav' }), result.outputName);
-    // Browsers drop rapid-fire programmatic downloads; a short gap keeps all of them.
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
+  return saveFiles(ready.map((result) => ({ name: result.outputName, blob: new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: 'audio/wav' }) })));
 }

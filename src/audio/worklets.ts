@@ -10,7 +10,7 @@ export function isAudioWorkletSupported(context: BaseAudioContext): boolean {
 }
 
 /**
- * Loads MechVox's processors into a context. Needed once per context, for AudioContext and OfflineAudioContext alike.
+ * Loads ClankerFX's processors into a context. Needed once per context, for AudioContext and OfflineAudioContext alike.
  * Throws a readable error when AudioWorklet is unavailable (it requires a secure context: HTTPS or localhost).
  */
 export async function loadWorklets(context: BaseAudioContext): Promise<void> {

@@ -9,6 +9,6 @@ export default defineConfig({
   test: {
     // DSP/state logic is tested without a DOM; Web Audio objects are never touched in unit tests.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'electron/**/*.test.ts'],
   },
 });

@@ -44,7 +44,7 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
       <div className="header__brand">
         <Logo />
         <h1 className="header__name">
-          MechVox<span className="sr-only"> — voice effects rack</span>
+          ClankerFX<span className="sr-only"> — voice effects rack</span>
         </h1>
       </div>
 

@@ -239,7 +239,7 @@ export function BatchTable({
                   <button
                     type="button"
                     className="btn batch-preview"
-                    aria-label={`Preview ${file.name}`}
+                    aria-label={`${active ? "Previewing" : "Preview"} ${file.name}`}
                     aria-pressed={active}
                     onClick={() => onPreview(file.id)}
                   >
