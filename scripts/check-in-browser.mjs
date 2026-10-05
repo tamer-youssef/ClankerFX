@@ -148,6 +148,30 @@ try {
       result.collapse[preset.name] = { baseRms, worstChangeDb: worst };
     }
 
+    // Random chains (Randomize menu): 20 seeds x mild/wild must render finite, bounded and neither collapsed nor exploding
+    // relative to the dry quiet input (processed RMS within 30 dB of the dry RMS).
+    const { randomChain } = await import('/src/presets/randomize.ts');
+    const dryQuietRms = rms(quiet);
+    result.randomChains = { count: 0, failures: [], worstDb: 0, worstSeed: null, maxPeak: 0, minDb: Infinity, maxDb: -Infinity };
+    for (const wildness of ['mild', 'wild']) {
+      for (let s = 0; s < 20; s++) {
+        const seed = s * 7919 + 11;
+        const chainOf = randomChain(seed, wildness);
+        const out = await render(chainOf, { seconds: 2, input: quiet });
+        const p = peak(out);
+        const db = 20 * Math.log10((rms(out) + 1e-12) / (dryQuietRms + 1e-12));
+        const r = result.randomChains;
+        r.count++;
+        r.maxPeak = Math.max(r.maxPeak, p);
+        r.minDb = Math.min(r.minDb, db);
+        r.maxDb = Math.max(r.maxDb, db);
+        if (Math.abs(db) > Math.abs(r.worstDb)) { r.worstDb = db; r.worstSeed = `${wildness}#${seed}`; }
+        if (!finite(out) || p >= 12 || Math.abs(db) > 30) {
+          r.failures.push({ wildness, seed, finite: finite(out), peak: p, db, types: chainOf.map((e) => `${e.type}@${e.amount}`).join(',') });
+        }
+      }
+    }
+
     let errorMessage = null;
     const chain = new EffectChain(new OfflineAudioContext(2, 1000, SR), { onEffectError: (_id, message) => (errorMessage = message) });
     chain.sync([{ id: 'bad', type: 'does-not-exist', enabled: true, amount: 1, params: {} }], options, true);
@@ -284,6 +308,14 @@ try {
   console.log('\nVariations never collapse the level (quiet input, 6 heavy mutations per preset)');
   for (const [name, r] of Object.entries(report.collapse)) {
     check(`${name}: worst variant change ${r.worstChangeDb.toFixed(1)} dB (limit −20 dB)`, r.baseRms > 1e-4 && r.worstChangeDb > -20);
+  }
+
+  console.log('\nRandom chains (20 seeds x mild/wild, quiet input)');
+  {
+    const r = report.randomChains;
+    const worst = r.failures.length > 0 ? r.failures.map((f) => `${f.wildness}#${f.seed} [${f.types}] peak ${f.peak.toFixed(2)} ${f.db.toFixed(1)} dB`).join(' | ')
+      : `level change ${r.minDb.toFixed(1)}..${r.maxDb.toFixed(1)} dB (worst ${r.worstDb.toFixed(1)} dB, ${r.worstSeed}), max peak ${r.maxPeak.toFixed(2)}`;
+    check(`random chains stay finite, audible and bounded (${r.count} chains)`, r.failures.length === 0, worst);
   }
 
   check('unknown effect type is skipped with a friendly error', typeof report.unknownEffectError === 'string' && report.unknownEffectError.includes('skipped'));

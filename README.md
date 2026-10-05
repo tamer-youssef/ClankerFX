@@ -7,7 +7,7 @@ Everything is deterministic DSP running locally — no AI, no server, no uploads
 
 **Status:** all 8 phases complete — load audio, waveform, transport, and a reorderable effect rack with Amount sliders:
 pitch shift, vocoder, ring modulator, bitcrusher, flanger (AudioWorklets) plus distortion, filter, EQ, chorus, phaser,
-compressor, delay, reverb, tremolo, noise, stereo width and gain. Plus 11 built-in presets, user presets (save/rename/duplicate/delete), deterministic Mutate with saved variations, and undo/redo.
+compressor, delay, reverb, tremolo, noise, stereo width and gain. Plus 11 built-in presets, user presets (save/rename/duplicate/delete), deterministic Mutate with saved variations, a Randomize menu (new random chain or re-roll settings, Mild/Wild, always inside safe ranges), and undo/redo. On wide screens the listening column (waveform, transport, output) stays in view beside the scrolling effect rack.
 Output stage: peak normalisation, LUFS loudness matching, a true-peak brickwall limiter and live level readouts; local WAV export
 (16/24-bit, original/44.1/48/96 kHz, mono/stereo). Batch processing: drop many files, apply one chain, match them all to one loudness, export processed copies or
 reproducible variations as a ZIP. Microphone recording (raw, local) and a WCAG 2.2 AA accessibility pass are included the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
