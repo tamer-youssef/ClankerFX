@@ -133,6 +133,21 @@ try {
       );
     }
 
+    // Variations must never collapse the sound. Absolute-level parameters (e.g. the vocoder gate) behave differently on
+    // quiet recordings, so measure on a quiet input: a mutated chain may not be more than 20 dB below the unmutated one.
+    const quiet = voice(2).map((v) => v * 0.1);
+    result.collapse = {};
+    for (const preset of builtInPresets) {
+      const chainOf = presetToChain(preset);
+      const baseRms = rms(await render(chainOf, { seconds: 2, input: quiet }));
+      let worst = Infinity;
+      for (let seed = 1; seed <= 6; seed++) {
+        const mutated = rms(await render(mutateChain(chainOf, 'heavy', seed * 7919), { seconds: 2, input: quiet }));
+        worst = Math.min(worst, 20 * Math.log10((mutated + 1e-12) / (baseRms + 1e-12)));
+      }
+      result.collapse[preset.name] = { baseRms, worstChangeDb: worst };
+    }
+
     let errorMessage = null;
     const chain = new EffectChain(new OfflineAudioContext(2, 1000, SR), { onEffectError: (_id, message) => (errorMessage = message) });
     chain.sync([{ id: 'bad', type: 'does-not-exist', enabled: true, amount: 1, params: {} }], options, true);
@@ -245,6 +260,11 @@ try {
     const bad = all.filter(([, v]) => !v.finite || v.peak > 12 || v.rms < 0.005 || v.rms > 2);
     check(`${name}: base + 3 heavy mutations finite, audible, bounded`, bad.length === 0,
       all.map(([k, v]) => `${k} peak ${v.peak.toFixed(2)} rms ${v.rms.toFixed(3)}`).join(' | '));
+  }
+
+  console.log('\nVariations never collapse the level (quiet input, 6 heavy mutations per preset)');
+  for (const [name, r] of Object.entries(report.collapse)) {
+    check(`${name}: worst variant change ${r.worstChangeDb.toFixed(1)} dB (limit −20 dB)`, r.baseRms > 1e-4 && r.worstChangeDb > -20);
   }
 
   check('unknown effect type is skipped with a friendly error', typeof report.unknownEffectError === 'string' && report.unknownEffectError.includes('skipped'));

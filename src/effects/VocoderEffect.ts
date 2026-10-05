@@ -56,7 +56,7 @@ export const vocoderEffect = defineEffect<VocoderParams>({
     releaseMs: { label: 'Release', min: 5, max: 300, default: 40, step: 1, unit: 'ms', scale: 'log' },
     formantShift: { label: 'Formant shift', min: 0.5, max: 2, default: 1, step: 0.01, unit: '×', scale: 'log', safe: { min: 0.65, max: 1.5 } },
     hiss: { label: 'Consonant hiss', min: 0, max: 1, default: 0.35, step: 0.01, percent: true },
-    gateDb: { label: 'Noise gate', min: -80, max: -30, default: -70, step: 1, unit: 'dB', safe: { min: -80, max: -45 } },
+    gateDb: { label: 'Noise gate', min: -80, max: -30, default: -70, step: 1, unit: 'dB', safe: { min: -80, max: -62 } },
     wet: { label: 'Wet / dry', min: 0, max: 1, default: 1, step: 0.01, percent: true },
   },
   // Amount fades from the natural voice (0%) to the fully vocoded voice (100%) scaled by Wet / dry.

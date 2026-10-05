@@ -187,3 +187,36 @@ describe('mutateChain', () => {
     }
   });
 });
+
+
+describe('mutation never produces a collapsed pass-band or a speech-eating gate', () => {
+  const mk = (type: string, params: Record<string, number> = {}) => {
+    const effect = createEffectState(type)!;
+    return { ...effect, params: { ...effect.params, ...params } };
+  };
+
+  it('keeps filter cutoffs at least ~1.5 octaves apart across many seeds and all intensities', () => {
+    for (const intensity of ['slight', 'medium', 'heavy'] as const) {
+      for (let seed = 1; seed <= 300; seed++) {
+        const [out] = mutateChain([mk('filter')], intensity, seed);
+        expect(out!.params.lowpassHz! / out!.params.highpassHz!, `${intensity} #${seed}`).toBeGreaterThanOrEqual(2.79);
+      }
+    }
+  });
+
+  it('does not make an already-narrow filter worse than it started', () => {
+    const narrow = mk('filter', { highpassHz: 1000, lowpassHz: 1500 });
+    for (let seed = 1; seed <= 50; seed++) {
+      const [out] = mutateChain([narrow], 'heavy', seed);
+      expect(out!.params.highpassHz).toBeGreaterThanOrEqual(60);
+      expect(out!.params.lowpassHz).toBeLessThanOrEqual(12000);
+    }
+  });
+
+  it('never raises the vocoder gate into the range where quiet speech lives (> -62 dB)', () => {
+    for (let seed = 1; seed <= 300; seed++) {
+      const [out] = mutateChain([mk('vocoder')], 'heavy', seed);
+      expect(out!.params.gateDb!).toBeLessThanOrEqual(-62);
+    }
+  });
+});

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { isWebAudioSupported } from './audio/AudioEngine';
+import { BatchPanel } from './components/BatchPanel/BatchPanel';
 import { DropOverlay, EmptyState } from './components/DropZone/DropZone';
 import { EffectRack } from './components/EffectRack/EffectRack';
 import { FileTray } from './components/FileTray/FileTray';
@@ -152,6 +153,7 @@ function Workspace() {
 
         <OutputPanel />
         <FileTray />
+        <BatchPanel />
         <EffectRack />
       </main>
 

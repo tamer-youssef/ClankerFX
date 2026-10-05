@@ -35,6 +35,24 @@ function mutateOption(spec: ParamSpec, value: number, chance: number, random: ()
   return others[Math.min(others.length - 1, Math.floor(pick * others.length))]!.value;
 }
 
+/**
+ * Cross-parameter rules that per-parameter safe windows cannot express. Filter cutoffs picked independently could leave a
+ * pass-band only a few hundred Hz wide, which silences a voice; keep at least an octave and a half between them.
+ */
+const MIN_FILTER_BANDWIDTH_RATIO = 2.8;
+
+function enforceInvariants(type: string, params: Record<string, number>, original: Record<string, number>): void {
+  if (type !== 'filter') return;
+  const highpass = params.highpassHz;
+  const lowpass = params.lowpassHz;
+  if (highpass === undefined || lowpass === undefined || lowpass >= highpass * MIN_FILTER_BANDWIDTH_RATIO) return;
+  // Pull the high-pass down rather than pushing the low-pass up, so the "dark" character of the preset is kept.
+  // If the original already violated the rule, leave it alone (mutation must not make things worse, but need not fix them).
+  const originalRatio = (original.lowpassHz ?? lowpass) / (original.highpassHz ?? highpass);
+  if (originalRatio < MIN_FILTER_BANDWIDTH_RATIO) return;
+  params.highpassHz = Math.max(10, lowpass / MIN_FILTER_BANDWIDTH_RATIO);
+}
+
 /** Pure, seeded variation of a chain. Keeps ids, order, types and enabled flags; returns new objects. */
 export function mutateChain(chain: readonly EffectState[], intensity: MutationIntensity, seed: number): EffectState[] {
   const random = createRandom(seed);
@@ -51,6 +69,7 @@ export function mutateChain(chain: readonly EffectState[], intensity: MutationIn
       mutatedParams[key] = spec.options ? mutateOption(spec, current, switchChance, random) : mutateValue(spec, current, spread, random);
     }
 
+    enforceInvariants(effect.type, mutatedParams, effect.params);
     const delta = (random() * 2 - 1) * spread * AMOUNT_FACTOR;
     const amount = effect.amount === 0 ? 0 : clamp(effect.amount + delta, MIN_AMOUNT, 1);
 
