@@ -11,12 +11,6 @@ export function AddEffectMenu() {
 
   useDismiss(open, containerRef, () => setOpen(false));
 
-  return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
-
   return (
     <div className="add-effect" ref={containerRef}>
       <button type="button" className="btn btn--primary" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
