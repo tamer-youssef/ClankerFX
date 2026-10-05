@@ -41,7 +41,7 @@ function mutateOption(spec: ParamSpec, value: number, chance: number, random: ()
  */
 const MIN_FILTER_BANDWIDTH_RATIO = 2.8;
 
-function enforceInvariants(type: string, params: Record<string, number>, original: Record<string, number>): void {
+export function enforceInvariants(type: string, params: Record<string, number>, original: Record<string, number>): void {
   if (type !== 'filter') return;
   const highpass = params.highpassHz;
   const lowpass = params.lowpassHz;

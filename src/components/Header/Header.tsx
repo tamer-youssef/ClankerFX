@@ -6,6 +6,7 @@ import { Logo } from '../common/icons';
 import { ExportDialog } from '../ExportDialog/ExportDialog';
 import { MutateMenu } from '../MutateMenu/MutateMenu';
 import { PresetBrowser } from '../PresetBrowser/PresetBrowser';
+import { RandomizeMenu } from '../RandomizeMenu/RandomizeMenu';
 import { Recorder } from '../Recorder/Recorder';
 import './Header.css';
 
@@ -96,6 +97,7 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
         </button>
         <PresetBrowser />
         <MutateMenu />
+        <RandomizeMenu />
         <button
           ref={exportButtonRef}
           type="button"
