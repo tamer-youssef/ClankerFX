@@ -1,5 +1,6 @@
 import type { LoadedFile } from '../types/audio';
 import { createId } from '../utils/id';
+import { sniffSourceSampleRate } from './audioMetadata';
 import { formatBytes } from '../utils/format';
 
 export const MAX_FILE_BYTES = 200 * 1024 * 1024;
@@ -55,6 +56,9 @@ export async function loadAudioFile(file: File, context: BaseAudioContext): Prom
     throw new AudioLoadError('decode-failed', `"${file.name}" could not be read from disk.`);
   }
 
+  // Must happen before decodeAudioData, which detaches the ArrayBuffer.
+  const sourceSampleRate = sniffSourceSampleRate(bytes);
+
   let buffer: AudioBuffer;
   try {
     buffer = await context.decodeAudioData(bytes);
@@ -69,5 +73,5 @@ export async function loadAudioFile(file: File, context: BaseAudioContext): Prom
     throw new AudioLoadError('too-long', `"${file.name}" is longer than ${MAX_DURATION_SECONDS / 60} minutes, which is too long to edit in memory.`);
   }
 
-  return { id: createId('file'), name: file.name, sizeBytes: file.size, buffer };
+  return { id: createId('file'), name: file.name, sizeBytes: file.size, buffer, sourceSampleRate };
 }

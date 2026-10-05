@@ -1,6 +1,7 @@
 /// <reference path="./worklet-globals.d.ts" />
 import { BitcrusherCore } from '../dsp/BitcrusherCore';
 import { FlangerCore } from '../dsp/FlangerCore';
+import { LimiterCore } from '../dsp/LimiterCore';
 import { PitchShiftCore } from '../dsp/PitchShiftCore';
 import { VocoderCore, type CarrierWave } from '../dsp/VocoderCore';
 
@@ -168,7 +169,36 @@ class VocoderProcessor extends CoreProcessor {
   }
 }
 
+/**
+ * Output limiter. Unlike the effects it has no free-running phase to reset; instead the limiter core is rebuilt when
+ * its (rarely changed) ceiling / mode parameters change.
+ */
+class LimiterProcessor extends CoreProcessor {
+  private limiter: LimiterCore | null = null;
+  private appliedKey = '';
+
+  protected get core(): Resettable {
+    return this.limiter ?? { reset() {} };
+  }
+
+  static get parameterDescriptors() {
+    return [kRate('ceilingDb', -1, -60, 60), kRate('truePeak', 1, 0, 1)];
+  }
+
+  protected run(inputs: Float32Array[], outputs: Float32Array[], frames: number, parameters: Record<string, Float32Array>): void {
+    const ceilingDb = value(parameters, 'ceilingDb');
+    const truePeak = value(parameters, 'truePeak') >= 0.5;
+    const key = `${ceilingDb}|${truePeak}`;
+    if (!this.limiter || key !== this.appliedKey) {
+      this.limiter = new LimiterCore(sampleRate, { ceilingDb, truePeak });
+      this.appliedKey = key;
+    }
+    this.limiter.process(inputs, outputs, frames);
+  }
+}
+
 registerProcessor('mechvox-bitcrusher', BitcrusherProcessor);
 registerProcessor('mechvox-flanger', FlangerProcessor);
 registerProcessor('mechvox-pitch', PitchShiftProcessor);
 registerProcessor('mechvox-vocoder', VocoderProcessor);
+registerProcessor('mechvox-limiter', LimiterProcessor);

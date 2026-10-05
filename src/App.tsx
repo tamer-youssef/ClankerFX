@@ -10,6 +10,7 @@ import { Transport } from './components/Transport/Transport';
 import { UnsupportedBrowser } from './components/UnsupportedBrowser/UnsupportedBrowser';
 import { Waveform } from './components/Waveform/Waveform';
 import { useAudioImport } from './hooks/useAudioImport';
+import { useOutputAnalysis } from './hooks/useOutputAnalysis';
 import { useFileDrop } from './hooks/useFileDrop';
 import { saveUserPresets } from './presets/presetStorage';
 import { AppProvider, useApp } from './state/AppContext';
@@ -34,6 +35,7 @@ function Workspace() {
   const importFiles = useAudioImport();
   const dragging = useFileDrop(importFiles);
   const activeFile = getActiveFile(state);
+  useOutputAnalysis();
   const activeBuffer = activeFile?.buffer ?? null;
 
   // Keep the engine's buffer in step with the active file. Switching files stops playback by design.

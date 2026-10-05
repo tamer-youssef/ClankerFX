@@ -3,7 +3,9 @@ import type { ChainOptions, EffectState } from '../types/effects';
 import { Emitter } from '../utils/emitter';
 import { EffectChain } from './EffectChain';
 import { createSafetyLimiter } from './OutputStage';
-import { loadWorklets } from './worklets';
+import { createWorkletNode, loadWorklets, setWorkletParams } from './worklets';
+import { setParam } from './paramUtils';
+import { dbToGain } from '../utils/math';
 import { clampSeek, positionAt, type ClockAnchor } from './playbackClock';
 
 interface EngineEvents {
@@ -38,13 +40,27 @@ export function isWebAudioSupported(): boolean {
 /**
  * Real-time playback engine. Owns the AudioContext and transport; knows nothing about React.
  *
- * Signal path: AudioBufferSourceNode → EffectChain → safety limiter → output (GainNode) → destination.
- * Loudness normalisation (Phase 5) will slot in between the chain and the limiter.
+ * Signal path: AudioBufferSourceNode → EffectChain → makeup gain (normalisation) → limiter → output → destination.
+ * This mirrors the export pipeline (chain → gain → limiter), so the preview is loudness-matched like the file will be.
  */
+
+/** Level-stage settings, derived from the offline measurement of the active file. */
+export interface OutputStage {
+  gainDb: number;
+  ceilingDb: number;
+  truePeak: boolean;
+  limiterEnabled: boolean;
+}
+
+/** A ceiling this high can never be reached, which turns the limiter into a (latency-matched) pass-through. */
+const LIMITER_DISABLED_CEILING_DB = 60;
 export class AudioEngine extends Emitter<EngineEvents> {
   private context: AudioContext | null = null;
   private output: GainNode | null = null;
   private chain: EffectChain | null = null;
+  private makeupGain: GainNode | null = null;
+  private limiter: AudioWorkletNode | null = null;
+  private outputStage: OutputStage = { gainDb: 0, ceilingDb: -1, truePeak: true, limiterEnabled: true };
   /** Resolves once worklet processors are loaded (or have failed). Playback and chain sync wait for it. */
   private ready: Promise<void> = Promise.resolve();
   private chainReady = false;
@@ -73,8 +89,8 @@ export class AudioEngine extends Emitter<EngineEvents> {
       this.chain = new EffectChain(this.context, {
         onEffectError: (id, message) => this.emit('effectError', { id, message }),
       });
-      const limiter = createSafetyLimiter(this.context);
-      this.chain.output.connect(limiter).connect(this.output);
+      this.makeupGain = this.context.createGain();
+      this.chain.output.connect(this.makeupGain);
       this.ready = this.prepareChain(this.context, this.chain);
     }
     return this.context;
@@ -82,16 +98,44 @@ export class AudioEngine extends Emitter<EngineEvents> {
 
   /** Loads worklets, then applies the pending chain. Failure degrades to "worklet effects are skipped", never a crash. */
   private async prepareChain(context: AudioContext, chain: EffectChain): Promise<void> {
+    let limiter: AudioNode | null = null;
     try {
       await loadWorklets(context);
+      this.limiter = createWorkletNode(context, 'mechvox-limiter');
+      limiter = this.limiter;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'unknown error';
-      this.emit('workletError', `Pitch Shift, Vocoder, Flanger and Bitcrusher are unavailable: ${reason}`);
+      this.emit('workletError', `Pitch Shift, Vocoder, Flanger, Bitcrusher and the brickwall limiter are unavailable: ${reason}`);
+      // Without worklets fall back to a native compressor so the output is still protected from overs.
+      limiter = createSafetyLimiter(context);
     }
-    if (this.chain !== chain) return; // engine was disposed meanwhile
+    if (this.chain !== chain || !this.makeupGain || !this.output) return; // engine was disposed meanwhile
+    this.makeupGain.connect(limiter).connect(this.output);
+    this.applyOutputStage(true);
     this.chainReady = true;
     // First sync is immediate: there is nothing to smooth from yet.
     chain.sync(this.chainConfig.effects, this.chainConfig.options, true);
+  }
+
+  /** Sets the normalisation gain and limiter. Safe to call at any time; applied once the context exists. */
+  setOutputStage(stage: OutputStage): void {
+    this.outputStage = stage;
+    this.applyOutputStage(false);
+  }
+
+  private applyOutputStage(immediate: boolean): void {
+    const context = this.context;
+    if (!context) return;
+    const { gainDb, ceilingDb, truePeak, limiterEnabled } = this.outputStage;
+    if (this.makeupGain) setParam(context, this.makeupGain.gain, dbToGain(gainDb), immediate);
+    if (this.limiter) {
+      setWorkletParams(
+        context,
+        this.limiter,
+        { ceilingDb: limiterEnabled ? ceilingDb : LIMITER_DISABLED_CEILING_DB, truePeak: truePeak ? 1 : 0 },
+        immediate,
+      );
+    }
   }
 
   /** Declares the desired effect chain. Safe to call before audio has ever played; applied once the context exists. */
@@ -198,6 +242,8 @@ export class AudioEngine extends Emitter<EngineEvents> {
   async dispose(): Promise<void> {
     this.teardownSource();
     this.chain?.dispose();
+    this.limiter = null;
+    this.makeupGain = null;
     await this.context?.close();
     this.context = null;
     this.output = null;
