@@ -1,5 +1,9 @@
 import { useRef } from 'react';
+import { canRedo, canUndo } from '../../state/appState';
+import { useApp } from '../../state/AppContext';
 import { Logo } from '../common/icons';
+import { MutateMenu } from '../MutateMenu/MutateMenu';
+import { PresetBrowser } from '../PresetBrowser/PresetBrowser';
 import './Header.css';
 
 interface HeaderProps {
@@ -8,10 +12,11 @@ interface HeaderProps {
   hasFiles: boolean;
 }
 
-const COMING_LATER = 'Available in a later build phase';
+const EXPORT_LATER = 'Available in a later build phase';
 
 export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { state, dispatch } = useApp();
 
   return (
     <header className="header">
@@ -40,16 +45,15 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
           }}
         />
         <span className="header__divider" aria-hidden="true" />
-        <button type="button" className="btn" disabled title={COMING_LATER}>
+        <button type="button" className="btn" disabled={!canUndo(state)} title="Undo (Ctrl+Z)" onClick={() => dispatch({ type: 'history/undo' })}>
           Undo
         </button>
-        <button type="button" className="btn" disabled title={COMING_LATER}>
+        <button type="button" className="btn" disabled={!canRedo(state)} title="Redo (Ctrl+Shift+Z)" onClick={() => dispatch({ type: 'history/redo' })}>
           Redo
         </button>
-        <button type="button" className="btn" disabled title={COMING_LATER}>
-          Presets
-        </button>
-        <button type="button" className="btn btn--primary" disabled title={COMING_LATER}>
+        <PresetBrowser />
+        <MutateMenu />
+        <button type="button" className="btn btn--primary" disabled title={EXPORT_LATER}>
           Export WAV
         </button>
       </div>

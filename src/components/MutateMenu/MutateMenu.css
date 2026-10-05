@@ -1,0 +1,119 @@
+.mutate-menu {
+  position: relative;
+}
+.mutate-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(75vh, 560px);
+  overflow-y: auto;
+  padding: 10px;
+  background: var(--panel-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+.mutate-menu__heading {
+  margin: 2px 4px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.mutate-menu__heading--section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.mutate-menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mutate-menu__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mutate-menu__item:hover,
+.mutate-menu__item:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+.mutate-menu__name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.mutate-menu__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+.mutate-menu__note {
+  margin: 6px 4px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.mutate-menu__variants {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 4px;
+}
+.mutate-menu__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.mutate-menu__input {
+  width: 64px;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.mutate-menu .select {
+  height: 32px;
+}
+.mutate-menu__variants .btn {
+  margin-left: auto;
+}
+.mutate-menu__status {
+  margin: 8px 4px 0;
+  min-height: 1.4em;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .mutate-menu {
+    position: static;
+  }
+  .mutate-menu__panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}

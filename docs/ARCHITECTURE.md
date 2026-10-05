@@ -100,11 +100,23 @@ Normalisation is applied *after* effects because they change loudness. For expor
 | 1 | Project setup, layout, file loading, waveform, transport | **done** |
 | 2 | `EffectChain`, effect abstraction, native-node effects, Amount sliders, rack UI | **done** |
 | 3 | AudioWorklet infrastructure: pitch shift, vocoder, flanger, bitcrusher | **done** |
-| 4 | Presets, mutate, undo/redo (drag-reorder already shipped in Phase 2) | next |
-| 5 | Peak normalise, LUFS matching, limiter | |
+| 4 | Presets, mutate, undo/redo (drag-reorder shipped in Phase 2) | **done** |
+| 5 | Peak normalise, LUFS matching, brickwall limiter | next |
 | 6 | Offline render, WAV export | |
 | 7 | Batch processing, variations | |
 | 8 | Microphone recording, polish, a11y, perf | |
+
+## Presets, Mutate and undo
+
+- **Presets** are plain JSON (`types/presets.ts`): ordered effects with `enabled`, `amount`, `params`. Everything entering the app
+  (built-ins, localStorage, future imports) goes through `sanitizeEffectState`, so a bad value can never reach the DSP. User presets
+  live in `localStorage` (`mechvox.userPresets.v1`); unparseable data is backed up to `….corrupt` instead of being overwritten.
+- **Mutate** (`presets/mutate.ts`) is a pure seeded function: each continuous parameter moves in *slider-position* units (so log
+  frequencies vary perceptually evenly) by up to ±8 % / ±20 % / ±40 %, clamped to the parameter's `safe` window (`ParamSpec.safe`) and
+  never pushed further outside it than it started. Option parameters may switch on medium/heavy. `createVariants` derives per-variant
+  seeds from a base seed, which the Phase 7 batch "variations" feature will reuse.
+- **Undo/redo** (`state/history.ts`): snapshots of `{chain, selectedPresetId}`, capped at 100. Edits to the same slider within 1 s
+  coalesce into one step (the UI passes a timestamp; reducers stay pure). Bypass/audition state and loaded files are not in history.
 
 ## Web Audio gotchas found by testing (keep in mind when adding effects)
 

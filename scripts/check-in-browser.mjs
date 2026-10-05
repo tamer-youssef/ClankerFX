@@ -119,6 +119,20 @@ try {
     result.removedMatchesDry = corr(await render([distortion, filter], { mutate: (c) => c.sync([], options, true) }), dry);
     result.reorderLiveMatchesFresh = corr(await render([distortion, filter], { mutate: (c) => c.sync([filter, distortion], options, true) }), ba);
 
+    // Every built-in preset, and heavy mutations of it, must render to finite, audible, bounded audio.
+    const { builtInPresets } = await import('/src/presets/builtInPresets.ts');
+    const { presetToChain } = await import('/src/presets/presetLibrary.ts');
+    const { mutateChain } = await import('/src/presets/mutate.ts');
+    result.presets = {};
+    for (const preset of builtInPresets) {
+      const chainOf = presetToChain(preset);
+      const renders = { base: await render(chainOf, { seconds: 2 }) };
+      for (const seed of [1, 2, 3]) renders[`heavy#${seed}`] = await render(mutateChain(chainOf, 'heavy', seed), { seconds: 2 });
+      result.presets[preset.name] = Object.fromEntries(
+        Object.entries(renders).map(([k, d]) => [k, { finite: finite(d), peak: peak(d), rms: rms(d) }]),
+      );
+    }
+
     let errorMessage = null;
     const chain = new EffectChain(new OfflineAudioContext(2, 1000, SR), { onEffectError: (_id, message) => (errorMessage = message) });
     chain.sync([{ id: 'bad', type: 'does-not-exist', enabled: true, amount: 1, params: {} }], options, true);
@@ -225,6 +239,14 @@ try {
   check('order of effects matters', report.orderMatters < 0.95, `corr ${report.orderMatters.toFixed(3)}`);
   check('removing all effects returns the dry signal', report.removedMatchesDry > 0.9999);
   check('live reorder equals a fresh chain in that order', report.reorderLiveMatchesFresh > 0.9999);
+  console.log('\nBuilt-in presets and heavy mutations render to sane audio (pre-limiter)');
+  for (const [name, variants] of Object.entries(report.presets)) {
+    const all = Object.entries(variants);
+    const bad = all.filter(([, v]) => !v.finite || v.peak > 12 || v.rms < 0.005 || v.rms > 2);
+    check(`${name}: base + 3 heavy mutations finite, audible, bounded`, bad.length === 0,
+      all.map(([k, v]) => `${k} peak ${v.peak.toFixed(2)} rms ${v.rms.toFixed(3)}`).join(' | '));
+  }
+
   check('unknown effect type is skipped with a friendly error', typeof report.unknownEffectError === 'string' && report.unknownEffectError.includes('skipped'));
 
   if (!process.env.SKIP_REALTIME) {

@@ -5,10 +5,10 @@ Everything is deterministic DSP running locally — no AI, no server, no uploads
 
 > Audio processing happens locally on your device.
 
-**Status:** Phases 1–3 of 8 — load audio, waveform, transport, and a reorderable effect rack with Amount sliders:
+**Status:** Phases 1–4 of 8 — load audio, waveform, transport, and a reorderable effect rack with Amount sliders:
 pitch shift, vocoder, ring modulator, bitcrusher, flanger (AudioWorklets) plus distortion, filter, EQ, chorus, phaser,
-compressor, delay, reverb, tremolo, noise, stereo width and gain. Presets, mutate, undo/redo, normalisation, export, batch
-processing and recording follow the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+compressor, delay, reverb, tremolo, noise, stereo width and gain. Plus 11 built-in presets, user presets (save/rename/duplicate/delete), deterministic Mutate with saved variations, and undo/redo.
+Normalisation, export, batch processing and recording follow the plan in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Develop
 
@@ -29,3 +29,5 @@ Stack: React 19, TypeScript (strict), Vite, Web Audio API, AudioWorklet. No back
 | Space | Play / pause |
 | ← / → on the waveform | Seek ±1 s (Shift: ±5 s) |
 | Home / End on the waveform | Jump to start / end |
+| Ctrl/⌘+Z | Undo chain edit |
+| Ctrl/⌘+Shift+Z or Ctrl+Y | Redo |

@@ -31,3 +31,10 @@
   background: var(--line);
   margin: 0 4px;
 }
+
+@media (max-width: 640px) {
+  .header {
+    position: relative;
+    padding: 10px 12px;
+  }
+}
