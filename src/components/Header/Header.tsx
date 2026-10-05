@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { canRedo, canUndo, getActiveFile } from '../../state/appState';
 import { useApp } from '../../state/AppContext';
+import { micUnsupportedReason } from '../../audio/micErrors';
 import { Logo } from '../common/icons';
 import { ExportDialog } from '../ExportDialog/ExportDialog';
 import { MutateMenu } from '../MutateMenu/MutateMenu';
 import { PresetBrowser } from '../PresetBrowser/PresetBrowser';
+import { Recorder } from '../Recorder/Recorder';
 import './Header.css';
 
 interface HeaderProps {
@@ -17,6 +19,13 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { state, dispatch } = useApp();
   const [exportOpen, setExportOpen] = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
+  const recordButtonRef = useRef<HTMLButtonElement>(null);
+  const recordUnavailable = micUnsupportedReason();
+  const closeRecorder = useCallback(() => {
+    setRecordOpen(false);
+    recordButtonRef.current?.focus();
+  }, []);
   const canExport = getActiveFile(state) !== null;
 
   return (
@@ -45,6 +54,18 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
             event.target.value = '';
           }}
         />
+        <button
+          ref={recordButtonRef}
+          type="button"
+          className="btn header__record"
+          disabled={recordUnavailable !== null}
+          title={recordUnavailable ? recordUnavailable.message : 'Record from your microphone (stays on this device)'}
+          aria-haspopup="dialog"
+          onClick={() => setRecordOpen(true)}
+        >
+          <span className="header__record-dot" aria-hidden="true" />
+          Record
+        </button>
         <span className="header__divider" aria-hidden="true" />
         <button type="button" className="btn" disabled={!canUndo(state)} title="Undo (Ctrl+Z)" onClick={() => dispatch({ type: 'history/undo' })}>
           Undo
@@ -65,6 +86,7 @@ export function Header({ onOpenFiles, onNew, hasFiles }: HeaderProps) {
           Export WAV
         </button>
       </div>
+      {recordOpen && <Recorder onClose={closeRecorder} />}
       {exportOpen && <ExportDialog onClose={() => setExportOpen(false)} />}
     </header>
   );

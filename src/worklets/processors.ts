@@ -221,9 +221,78 @@ class LimiterProcessor extends CoreProcessor {
   }
 }
 
+/**
+ * Microphone recorder: copies channel 0 of its input into transferable Float32Array chunks and reports the block peak
+ * for the input meter. It has no outputs, so nothing is ever monitored (no feedback). Messages out:
+ * a bare Float32Array (a chunk of samples), `{ type: 'level', peak }` about every 50 ms and `{ type: 'flushed' }`.
+ * Message in: `{ type: 'flush' }` posts any partial chunk, then replies `flushed`.
+ */
+const RECORDER_CHUNK_FRAMES = 2048;
+const RECORDER_LEVEL_INTERVAL_SECONDS = 0.05;
+/** Web Audio's fixed render quantum, used to keep timing exact if the input is momentarily absent. */
+const RENDER_QUANTUM = 128;
+
+class RecorderProcessor extends AudioWorkletProcessor {
+  private chunk = new Float32Array(RECORDER_CHUNK_FRAMES);
+  private filled = 0;
+  private peak = 0;
+  private framesSinceLevel = 0;
+
+  constructor() {
+    super();
+    this.port.onmessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string } | null;
+      if (data?.type !== 'flush') return;
+      if (this.filled > 0) {
+        const partial = this.chunk.slice(0, this.filled);
+        this.chunk = new Float32Array(RECORDER_CHUNK_FRAMES);
+        this.filled = 0;
+        this.port.postMessage(partial, [partial.buffer]);
+      }
+      this.port.postMessage({ type: 'flushed' });
+    };
+  }
+
+  override process(inputs: Float32Array[][]): boolean {
+    const channel = inputs[0]?.[0];
+    const frames = channel ? channel.length : RENDER_QUANTUM;
+    let peak = this.peak;
+    let read = 0;
+    while (read < frames) {
+      const count = Math.min(frames - read, RECORDER_CHUNK_FRAMES - this.filled);
+      if (channel) {
+        for (let i = 0; i < count; i++) {
+          const sample = channel[read + i]!;
+          this.chunk[this.filled + i] = sample;
+          const magnitude = sample < 0 ? -sample : sample;
+          if (magnitude > peak) peak = magnitude;
+        }
+      }
+      // With no input the chunk keeps its zeros: silence, so the take stays aligned with real time.
+      this.filled += count;
+      read += count;
+      if (this.filled === RECORDER_CHUNK_FRAMES) {
+        const full = this.chunk;
+        this.chunk = new Float32Array(RECORDER_CHUNK_FRAMES);
+        this.filled = 0;
+        this.port.postMessage(full, [full.buffer]);
+      }
+    }
+    this.peak = peak;
+    this.framesSinceLevel += frames;
+    if (this.framesSinceLevel >= sampleRate * RECORDER_LEVEL_INTERVAL_SECONDS) {
+      this.port.postMessage({ type: 'level', peak: this.peak });
+      this.peak = 0;
+      this.framesSinceLevel = 0;
+    }
+    return true;
+  }
+}
+
 registerProcessor('mechvox-bitcrusher', BitcrusherProcessor);
 registerProcessor('mechvox-flanger', FlangerProcessor);
 registerProcessor('mechvox-pitch', PitchShiftProcessor);
 registerProcessor('mechvox-vocoder', VocoderProcessor);
 registerProcessor('mechvox-limiter', LimiterProcessor);
 registerProcessor('mechvox-compressor', CompressorProcessor);
+registerProcessor('mechvox-recorder', RecorderProcessor);

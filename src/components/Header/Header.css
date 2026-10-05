@@ -25,6 +25,20 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.header__record {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.header__record-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+.header__record:disabled .header__record-dot {
+  background: var(--text-muted);
+}
 .header__divider {
   width: 1px;
   height: 22px;
