@@ -25,7 +25,7 @@ export const reverbEffect = defineEffect<ReverbParams>({
   defaultAmount: 0.3,
   blend: 'add',
   params: {
-    decaySeconds: { label: 'Decay', min: 0.2, max: 6, default: 1.4, step: 0.1, unit: 's' },
+    decaySeconds: { label: 'Decay', min: 0.2, max: 6, default: 1.4, step: 0.1, unit: 's', safe: { min: 0.3, max: 4 } },
     toneHz: { label: 'Brightness', min: 1000, max: 16000, default: 6000, step: 100, unit: 'Hz', scale: 'log' },
     preDelayMs: { label: 'Pre-delay', min: 0, max: 100, default: 12, step: 1, unit: 'ms' },
   },

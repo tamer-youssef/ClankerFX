@@ -32,7 +32,7 @@ export const noiseEffect = defineEffect<NoiseParams>({
         { value: 2, label: 'Crackle' },
       ],
     },
-    levelDb: { label: 'Level (RMS)', min: -60, max: -6, default: -28, step: 1, unit: 'dB' },
+    levelDb: { label: 'Level (RMS)', min: -60, max: -6, default: -28, step: 1, unit: 'dB', safe: { min: -48, max: -16 } },
     lowCutHz: { label: 'Low cut', min: 20, max: 2000, default: 250, step: 5, unit: 'Hz', scale: 'log' },
     highCutHz: { label: 'High cut', min: 1000, max: 16000, default: 7000, step: 100, unit: 'Hz', scale: 'log' },
   },

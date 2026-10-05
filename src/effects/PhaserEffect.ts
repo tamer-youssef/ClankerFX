@@ -35,7 +35,7 @@ export const phaserEffect = defineEffect<PhaserParams>({
     rateHz: { label: 'Rate', min: 0.05, max: 5, default: 0.4, step: 0.05, unit: 'Hz', scale: 'log' },
     depth: { label: 'Depth', min: 0, max: 1, default: 0.8, step: 0.01, percent: true },
     centerHz: { label: 'Center', min: 200, max: 3000, default: 900, step: 10, unit: 'Hz', scale: 'log' },
-    feedback: { label: 'Feedback', min: 0, max: 0.8, default: 0.4, step: 0.01, percent: true },
+    feedback: { label: 'Feedback', min: 0, max: 0.8, default: 0.4, step: 0.01, percent: true, safe: { min: 0, max: 0.7 } },
   },
   resolve: (amount, params) => ({ mix: amount, params }),
   create(context) {

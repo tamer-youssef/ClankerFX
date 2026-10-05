@@ -19,7 +19,7 @@ export const flangerEffect = defineEffect<FlangerParams>({
     centerMs: { label: 'Delay', min: 0.3, max: 10, default: 2.5, step: 0.1, unit: 'ms', scale: 'log' },
     depth: { label: 'Depth', min: 0, max: 0.95, default: 0.8, step: 0.01, percent: true },
     // Capped below ±1 so the loop always decays; negative values give a hollow, "through-zero" flavour.
-    feedback: { label: 'Feedback', min: -0.85, max: 0.85, default: 0.6, step: 0.01, percent: true },
+    feedback: { label: 'Feedback', min: -0.85, max: 0.85, default: 0.6, step: 0.01, percent: true, safe: { min: -0.75, max: 0.75 } },
   },
   resolve: (amount, params) => ({ mix: amount, params }),
   create(context) {

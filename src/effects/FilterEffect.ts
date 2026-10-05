@@ -20,8 +20,8 @@ export const filterEffect = defineEffect<FilterParams>({
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
-    highpassHz: { label: 'High-pass', min: 10, max: 2000, default: 350, step: 1, unit: 'Hz', scale: 'log' },
-    lowpassHz: { label: 'Low-pass', min: 500, max: 20000, default: 3200, step: 10, unit: 'Hz', scale: 'log' },
+    highpassHz: { label: 'High-pass', min: 10, max: 2000, default: 350, step: 1, unit: 'Hz', scale: 'log', safe: { min: 60, max: 1200 } },
+    lowpassHz: { label: 'Low-pass', min: 500, max: 20000, default: 3200, step: 10, unit: 'Hz', scale: 'log', safe: { min: 1500, max: 12000 } },
     slope: {
       label: 'Slope',
       min: 12,

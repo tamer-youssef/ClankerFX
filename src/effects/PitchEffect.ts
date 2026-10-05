@@ -19,7 +19,7 @@ export const pitchEffect = defineEffect<PitchParams>({
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
-    semitones: { label: 'Pitch', min: -24, max: 24, default: -5, step: 0.5, unit: 'st' },
+    semitones: { label: 'Pitch', min: -24, max: 24, default: -5, step: 0.5, unit: 'st', safe: { min: -14, max: 10 } },
     windowMs: { label: 'Grain size', min: 20, max: 120, default: 60, step: 1, unit: 'ms' },
     wet: { label: 'Wet / dry', min: 0, max: 1, default: 1, step: 0.01, percent: true },
   },

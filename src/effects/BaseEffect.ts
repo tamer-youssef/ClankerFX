@@ -21,6 +21,11 @@ export interface ParamSpec {
   options?: readonly ParamOption[];
   /** Display as a percentage of 0..1 (value 0.5 → "50%"). */
   percent?: boolean;
+  /**
+   * Narrower range that Mutate is allowed to wander into. Keeps random variation musical and safe (no huge gains,
+   * no near-unity feedback) even though the manual slider range is wider.
+   */
+  safe?: { min: number; max: number };
 }
 
 export type ParamSchema<P> = { [K in keyof P]: ParamSpec };

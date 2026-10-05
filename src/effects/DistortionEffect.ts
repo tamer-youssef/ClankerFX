@@ -19,7 +19,7 @@ export const distortionEffect = defineEffect<DistortionParams>({
   defaultAmount: 0.5,
   blend: 'crossfade',
   params: {
-    driveDb: { label: 'Drive', min: 0, max: 40, default: 20, step: 0.5, unit: 'dB' },
+    driveDb: { label: 'Drive', min: 0, max: 40, default: 20, step: 0.5, unit: 'dB', safe: { min: 4, max: 32 } },
     shape: {
       label: 'Character',
       min: 0,
@@ -33,7 +33,7 @@ export const distortionEffect = defineEffect<DistortionParams>({
       ],
     },
     toneHz: { label: 'Tone (low-pass)', min: 800, max: 16000, default: 7000, step: 100, unit: 'Hz', scale: 'log' },
-    outputDb: { label: 'Output level', min: -18, max: 6, default: -3, step: 0.5, unit: 'dB' },
+    outputDb: { label: 'Output level', min: -18, max: 6, default: -3, step: 0.5, unit: 'dB', safe: { min: -9, max: 0 } },
   },
   // Amount is a parallel blend of clean and distorted signal, so 0% is the untouched input.
   resolve: (amount, params) => ({ mix: amount, params }),

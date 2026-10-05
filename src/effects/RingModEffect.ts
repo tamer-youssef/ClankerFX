@@ -15,7 +15,7 @@ export const ringModEffect = defineEffect<RingModParams>({
   defaultAmount: 0.7,
   blend: 'crossfade',
   params: {
-    frequencyHz: { label: 'Carrier frequency', min: 20, max: 2000, default: 70, step: 1, unit: 'Hz', scale: 'log' },
+    frequencyHz: { label: 'Carrier frequency', min: 20, max: 2000, default: 70, step: 1, unit: 'Hz', scale: 'log', safe: { min: 25, max: 500 } },
     shape: {
       label: 'Carrier shape',
       min: 0,

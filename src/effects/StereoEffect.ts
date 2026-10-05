@@ -13,7 +13,7 @@ export const stereoEffect = defineEffect<StereoParams>({
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
-    width: { label: 'Width', min: 0, max: 2, default: 1.6, step: 0.01, percent: true },
+    width: { label: 'Width', min: 0, max: 2, default: 1.6, step: 0.01, percent: true, safe: { min: 0.4, max: 1.8 } },
     haasMs: { label: 'Haas delay (R)', min: 0, max: 25, default: 10, step: 0.5, unit: 'ms' },
   },
   // Amount moves from the identity (width 100%, no delay) to the configured settings.

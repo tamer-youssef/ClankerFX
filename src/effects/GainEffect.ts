@@ -13,7 +13,7 @@ export const gainEffect = defineEffect<GainParams>({
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
-    gainDb: { label: 'Gain', min: -24, max: 12, default: 6, step: 0.5, unit: 'dB' },
+    gainDb: { label: 'Gain', min: -24, max: 12, default: 6, step: 0.5, unit: 'dB', safe: { min: -12, max: 8 } },
   },
   // Amount scales the dB change, so 0% is unity gain.
   resolve: (amount, params) => ({ mix: 1, params: { gainDb: params.gainDb * amount } }),

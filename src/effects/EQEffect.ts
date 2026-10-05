@@ -20,12 +20,12 @@ export const eqEffect = defineEffect<EQParams>({
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
-    lowDb: { label: 'Low (120 Hz)', min: -15, max: 15, default: -4, step: 0.5, unit: 'dB' },
-    lowMidDb: { label: 'Low-mid gain', min: -15, max: 15, default: 3, step: 0.5, unit: 'dB' },
+    lowDb: { label: 'Low (120 Hz)', min: -15, max: 15, default: -4, step: 0.5, unit: 'dB', safe: { min: -9, max: 9 } },
+    lowMidDb: { label: 'Low-mid gain', min: -15, max: 15, default: 3, step: 0.5, unit: 'dB', safe: { min: -9, max: 9 } },
     lowMidHz: { label: 'Low-mid freq', min: 150, max: 1500, default: 450, step: 5, unit: 'Hz', scale: 'log' },
-    highMidDb: { label: 'High-mid gain', min: -15, max: 15, default: 5, step: 0.5, unit: 'dB' },
+    highMidDb: { label: 'High-mid gain', min: -15, max: 15, default: 5, step: 0.5, unit: 'dB', safe: { min: -9, max: 9 } },
     highMidHz: { label: 'High-mid freq', min: 1000, max: 8000, default: 2800, step: 10, unit: 'Hz', scale: 'log' },
-    highDb: { label: 'High (8 kHz)', min: -15, max: 15, default: -2, step: 0.5, unit: 'dB' },
+    highDb: { label: 'High (8 kHz)', min: -15, max: 15, default: -2, step: 0.5, unit: 'dB', safe: { min: -9, max: 9 } },
   },
   // Amount scales every band's gain, so 0% is a flat response.
   resolve: (amount, params) => ({

@@ -18,8 +18,8 @@ export const delayEffect = defineEffect<DelayParams>({
   params: {
     timeMs: { label: 'Time', min: 20, max: 1000, default: 240, step: 1, unit: 'ms', scale: 'log' },
     // Capped well below 1 so the loop always decays: runaway feedback is impossible by construction.
-    feedback: { label: 'Feedback', min: 0, max: 0.85, default: 0.35, step: 0.01, percent: true },
-    dampingHz: { label: 'Damping', min: 500, max: 12000, default: 4500, step: 50, unit: 'Hz', scale: 'log' },
+    feedback: { label: 'Feedback', min: 0, max: 0.85, default: 0.35, step: 0.01, percent: true, safe: { min: 0, max: 0.7 } },
+    dampingHz: { label: 'Damping', min: 500, max: 12000, default: 4500, step: 50, unit: 'Hz', scale: 'log', safe: { min: 1500, max: 10000 } },
   },
   resolve: (amount, params) => ({ mix: amount, params }),
   create(context) {

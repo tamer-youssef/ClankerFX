@@ -17,11 +17,11 @@ export const compressorEffect = defineEffect<CompressorParams>({
   defaultAmount: 1,
   blend: 'crossfade',
   params: {
-    thresholdDb: { label: 'Threshold', min: -60, max: 0, default: -26, step: 1, unit: 'dB' },
-    ratio: { label: 'Ratio', min: 1, max: 20, default: 6, step: 0.5, unit: ':1' },
+    thresholdDb: { label: 'Threshold', min: -60, max: 0, default: -26, step: 1, unit: 'dB', safe: { min: -40, max: -12 } },
+    ratio: { label: 'Ratio', min: 1, max: 20, default: 6, step: 0.5, unit: ':1', safe: { min: 2, max: 12 } },
     attackMs: { label: 'Attack', min: 1, max: 100, default: 8, step: 1, unit: 'ms', scale: 'log' },
     releaseMs: { label: 'Release', min: 20, max: 1000, default: 160, step: 10, unit: 'ms', scale: 'log' },
-    makeupDb: { label: 'Make-up gain', min: -12, max: 12, default: 0, step: 0.5, unit: 'dB' },
+    makeupDb: { label: 'Make-up gain', min: -12, max: 12, default: 0, step: 0.5, unit: 'dB', safe: { min: -3, max: 6 } },
   },
   // Amount moves threshold and ratio from "no compression" (0 dB, 1:1) to the configured values.
   resolve: (amount, params) => ({
