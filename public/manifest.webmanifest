@@ -1,6 +1,6 @@
 {
-  "name": "MechVox",
-  "short_name": "MechVox",
+  "name": "ClankerFX",
+  "short_name": "ClankerFX",
   "description": "A local, DSP-only effects rack for robot, radio and game voices. Audio never leaves your device.",
   "start_url": ".",
   "scope": ".",

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { downloadBlob, exportProcessed } from '../../audio/exporter';
+import { exportProcessed } from '../../audio/exporter';
+import { saveBlob } from '../../audio/saveFile';
 import { useApp } from '../../state/AppContext';
 import { getActiveFile } from '../../state/appState';
 import type { ExportSettings } from '../../types/output';
@@ -124,7 +125,7 @@ export function ExportDialog({ onClose }: ExportDialogProps) {
         normalization: state.normalization,
         settings: { ...exportSettings, filenameSuffix: suffix },
       });
-      downloadBlob(result.blob, result.filename);
+      if ((await saveBlob(result.blob, result.filename)) === 'cancelled') return;
       setSaved({
         filename: result.filename,
         size: formatBytes(result.blob.size),

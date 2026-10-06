@@ -1,6 +1,6 @@
-# MechVox architecture
+# ClankerFX architecture
 
-MechVox is a browser-only audio effects rack for robot, radio and game voices. All processing is
+ClankerFX is a browser-only audio effects rack for robot, radio and game voices. All processing is
 deterministic DSP running locally (Web Audio + AudioWorklet). There is no backend, no network I/O for
 audio, and no AI/inference of any kind.
 
@@ -175,6 +175,22 @@ our own worklet (`dsp/CompressorCore.ts`): below the threshold the gain is exact
 - **Offline-ready:** web manifest and icons are in place and no resource is fetched from another origin. A service worker is deliberately
   not added yet (caching strategy and update UX deserve their own design); `vite-plugin-pwa` or a hand-written worker can be added without
   touching the audio code.
+
+## Desktop shell (Electron)
+
+`electron/` is a thin shell around the unchanged web app; the audio engine and UI know nothing about it except `window.clankerfx`
+(`src/types/clankerfx.d.ts`), which `src/audio/saveFile.ts` uses to pick native dialogs over browser downloads.
+
+- `main.ts` serves `dist/` from a privileged `app://clankerfx/` scheme (secure + standard, so AudioWorklet, Web Workers, getUserMedia and
+  storage behave as on https; they do not work from `file://`). Files are read directly with our own MIME table, a strict CSP is sent
+  with every response, and `resolveAppFile` refuses anything outside `dist/`.
+- Lockdown: `contextIsolation`, `sandbox`, no Node in the page, `webRequest` cancels every non-app URL, `window.open`/navigation/webviews denied.
+  Only the `media` permission is granted, audio only, to the app origin (macOS also asks the OS; `NSMicrophoneUsageDescription` is in `electron-builder.yml`).
+- `preload.ts` exposes `saveFile` and `saveFiles` only. IPC handlers check the sender URL, sanitise names (basename + `.wav`/`.zip`) and never overwrite
+  (`name (1).wav`). Batch "separate files" asks for one folder instead of N downloads.
+- The menu has no Edit → Undo/Redo, because those accelerators would swallow the app's own Ctrl/⌘+Z.
+- Pure logic lives in `security.ts` (unit-tested). `npm run check:electron` drives the real app with Playwright (works against the packaged build too).
+- Builds are **unsigned, no auto-update** (personal use). `electron-dist/` is compiled CommonJS with its own `package.json` because the app package is ESM.
 
 ## Web Audio gotchas found by testing (keep in mind when adding effects)
 

@@ -1,0 +1,28 @@
+# Unsigned local builds: no Apple developer account, no Windows certificate, no auto-update. For personal use.
+appId: com.clankerfx.app
+productName: ClankerFX
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - electron-dist/**
+  - package.json
+  - '!**/*.map'
+asar: true
+publish: null
+mac:
+  category: public.app-category.music
+  target: dmg
+  identity: null
+  extendInfo:
+    NSMicrophoneUsageDescription: ClankerFX uses the microphone only when you press Record. Recordings stay on this computer.
+win:
+  target: nsis
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target: AppImage
+  category: AudioVideo

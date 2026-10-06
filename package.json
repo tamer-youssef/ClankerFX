@@ -1,20 +1,25 @@
 {
-  "name": "mechvox",
+  "name": "clankerfx",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "MechVox \u2014 a local, DSP-only effects rack for robot, radio and game voices.",
+  "description": "ClankerFX \u2014 a local, DSP-only effects rack for robot, radio and game voices.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run typecheck && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p electron --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "check:browser": "node scripts/check-in-browser.mjs",
     "check:a11y": "node scripts/check-a11y.mjs",
     "check:privacy": "node scripts/check-privacy.mjs",
-    "deploy:pages": "bash scripts/deploy-pages.sh"
+    "electron:build": "vite build && node scripts/build-electron.mjs",
+    "electron:dev": "node scripts/electron-dev.mjs",
+    "electron:start": "npm run electron:build && electron .",
+    "electron:pack": "npm run electron:build && electron-builder --dir",
+    "electron:dist": "npm run electron:build && electron-builder",
+    "check:electron": "node scripts/check-electron.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",
@@ -25,8 +30,12 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
-  }
+  },
+  "main": "electron-dist/main.js",
+  "author": "ClankerFX"
 }
