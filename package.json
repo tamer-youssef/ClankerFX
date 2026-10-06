@@ -14,7 +14,6 @@
     "check:browser": "node scripts/check-in-browser.mjs",
     "check:a11y": "node scripts/check-a11y.mjs",
     "check:privacy": "node scripts/check-privacy.mjs",
-    "deploy:pages": "bash scripts/deploy-pages.sh",
     "electron:build": "vite build && node scripts/build-electron.mjs",
     "electron:dev": "node scripts/electron-dev.mjs",
     "electron:start": "npm run electron:build && electron .",
